@@ -21,8 +21,8 @@ from typing import Any, Literal
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from waypoint.agents.runtime import WaypointRuntime
 from waypoint.analytics import UsageEvent, UsageStore, new_answer_id, question_event, summarise, usage_store

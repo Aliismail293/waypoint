@@ -58,7 +58,7 @@ class FirestoreUsageStore:
         self._collection.add(asdict(event))
 
     def all(self) -> list[UsageEvent]:
-        return [UsageEvent(**doc.to_dict()) for doc in self._collection.stream()]
+        return [UsageEvent(**(doc.to_dict() or {})) for doc in self._collection.stream()]
 
 
 def usage_store(settings: Settings) -> UsageStore:
