@@ -11,7 +11,7 @@ resource "google_project_service" "billingbudgets" {
 }
 
 resource "google_billing_budget" "monthly" {
-  count           = var.enable_budget ? 1 : 0
+  count           = var.enable_budget && var.billing_account != "" ? 1 : 0
   provider        = google.billing
   billing_account = var.billing_account
   display_name    = "waypoint-monthly"

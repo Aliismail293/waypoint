@@ -43,9 +43,9 @@ variable "enable_budget" {
 }
 
 variable "billing_account" {
-  description = "Billing account linked to the project (from `gcloud billing projects describe`)."
+  description = "Billing account linked to the project (from `gcloud billing projects describe`). Set it in terraform.tfvars (git-ignored), not here; empty skips the budget."
   type        = string
-  default     = "016B73-5EA57C-C8C383"
+  default     = ""
 }
 
 variable "budget_amount" {

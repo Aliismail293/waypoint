@@ -87,3 +87,9 @@ All 7 imported resources import with **no attribute changes** on the first plan,
 - Cloud Run v2 `deletion_protection` defaults to `true` in this provider, so `terraform destroy` of a
   service needs that flag turned off first.
 - State is local. Move it to a GCS backend before the first apply.
+
+## Update after review
+
+- `billing_account` no longer has a default (the id stays out of the repo). Set it in a git-ignored
+  `terraform.tfvars`; when it is empty the budget is skipped, so a plan without tfvars shows 17 to add.
+  The 18-to-add figure above was planned with the billing account set.
