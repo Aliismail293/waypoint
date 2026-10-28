@@ -1,0 +1,12 @@
+{
+  "questions": 65,
+  "accuracy_pct": 21.54,
+  "retrieval_hit_pct": 80.0,
+  "p95_latency_ms": 64.8,
+  "p95_model_calls": 4,
+  "safety": {
+    "cases": 8,
+    "passed": 8,
+    "failed": []
+  }
+}

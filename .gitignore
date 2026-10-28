@@ -17,3 +17,5 @@ evals/results/*.html
 *.tfplan
 *.tfvars
 !evals/golden/store.db
+evals/results/ci_*
+evals/results/safety_offline.json

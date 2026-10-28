@@ -1,0 +1,58 @@
+# Offline CI: lint, types, tests, and the eval gate. No secrets: mock LLM, mock embeddings, in-memory stores.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+env:
+  # ragaudit is a path dependency (../Rag-Tester); pin the commit the lockfile was built against.
+  RAGAUDIT_REPO: https://github.com/Aliismail293/rag-tester.git
+  RAGAUDIT_SHA: 236bf5028ebe780b2677ced6ec24c0a02b860d67
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ragaudit (path dependency)
+        run: |
+          git clone --quiet "$RAGAUDIT_REPO" ../Rag-Tester
+          git -C ../Rag-Tester checkout --quiet "$RAGAUDIT_SHA"
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --all-groups --frozen
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest -q
+
+  eval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: ragaudit (path dependency)
+        run: |
+          git clone --quiet "$RAGAUDIT_REPO" ../Rag-Tester
+          git -C ../Rag-Tester checkout --quiet "$RAGAUDIT_SHA"
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --all-groups --frozen
+      - name: Measure head
+        run: uv run python evals/ci_gate.py measure --out "$RUNNER_TEMP/head.json"
+      - name: Measure base (same runner, so latency is comparable)
+        if: github.event_name == 'pull_request'
+        run: |
+          git worktree add --quiet "$RUNNER_TEMP/base" "${{ github.event.pull_request.base.sha }}"
+          if [ -f "$RUNNER_TEMP/base/evals/golden/store.db" ]; then
+            (cd "$RUNNER_TEMP/base" && uv sync --all-groups --frozen)
+            uv run python evals/ci_gate.py measure --repo "$RUNNER_TEMP/base" --out "$RUNNER_TEMP/base.json"
+          fi
+      - name: Gate
+        run: |
+          base="$RUNNER_TEMP/base.json"
+          [ -f "$base" ] || base=evals/ci_baseline.json   # pushes, or a base without the golden set
+          uv run python evals/ci_gate.py compare --base "$base" --head "$RUNNER_TEMP/head.json" | tee -a "$GITHUB_STEP_SUMMARY"
