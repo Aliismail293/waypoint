@@ -252,6 +252,7 @@ class WaypointRuntime:
         plugins: list[BasePlugin] | None = None,
     ) -> None:
         self.settings = settings or get_settings()
+        self.deps: Dependencies | None = None
         self.session_service = session_service or InMemorySessionService()
         recorder = RecorderPlugin(self.settings.max_model_calls_per_request)
         self.app = App(name=APP_NAME, root_agent=agent, plugins=[recorder, ObservabilityPlugin(), *(plugins or [])])
@@ -262,8 +263,10 @@ class WaypointRuntime:
     def from_settings(cls, settings: Settings | None = None) -> "WaypointRuntime":
         settings = settings or get_settings()
         setup_tracing(settings)
-        agent = build_root_agent(build_dependencies(settings))
-        return cls(agent, settings, build_session_service(settings))
+        deps = build_dependencies(settings)
+        runtime = cls(build_root_agent(deps), settings, build_session_service(settings))
+        runtime.deps = deps
+        return runtime
 
     async def ask(self, user_id: str, text: str, session_id: str | None = None) -> Answer:
         session = None

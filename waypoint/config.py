@@ -4,6 +4,7 @@ Secrets are never defaults here: the DB password comes from WAYPOINT_DB_PASSWORD
 injects from Secret Manager and which you export locally from `gcloud secrets versions access`.
 """
 
+import os
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -50,6 +51,8 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     # Only honoured when not running on Cloud Run (K_SERVICE unset): lets local dev skip sign-in.
     dev_skip_auth: bool = False
+    # gcloud identity tokens are accepted only for these emails (operator smoke tests).
+    operator_emails: str = "alii.ekramy.ismail@gmail.com"
 
     # Observability.
     langfuse_host: str = "https://cloud.langfuse.com"
@@ -64,6 +67,10 @@ class Settings(BaseSettings):
     sessions: str = "memory"
 
     advisor_url: str = "https://www.utm.utoronto.ca/academic-advising-career-centre/"
+
+    @property
+    def on_cloud_run(self) -> bool:
+        return bool(os.environ.get("K_SERVICE"))
 
 
 @lru_cache

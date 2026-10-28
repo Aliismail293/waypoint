@@ -76,9 +76,13 @@ COLUMNS = "chunk_id, doc_id, kind, heading, text, source_url, content_hash"
 
 
 class PgVectorStore:
+    """pgvector store over a small connection pool (Cloud Run serves concurrent requests; idle Cloud SQL
+    connections get dropped, and the pool's health check replaces them)."""
+
     def __init__(self, settings: Settings) -> None:
         import psycopg
         from pgvector.psycopg import register_vector
+        from psycopg_pool import ConnectionPool
 
         self.schema = settings.db_schema
         self.dim = settings.embedding_dim
@@ -89,12 +93,25 @@ class PgVectorStore:
             user=settings.db_user,
             password=settings.db_password,
         )
-        self._conn = psycopg.connect(conninfo, autocommit=True)
-        self._conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-        register_vector(self._conn)
+        with psycopg.connect(conninfo, autocommit=True) as conn:  # the vector type must exist before pooling
+            conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        self._pool = ConnectionPool(
+            conninfo,
+            min_size=1,
+            max_size=4,
+            kwargs={"autocommit": True},
+            configure=register_vector,
+            check=ConnectionPool.check_connection,
+            open=True,
+        )
+
+    def _execute(self, sql: str, params: tuple | None = None) -> list[tuple]:
+        with self._pool.connection() as conn:
+            cursor = conn.execute(sql, params)
+            return cursor.fetchall() if cursor.description else []
 
     def create_schema(self) -> None:
-        self._conn.execute(SCHEMA_SQL.format(schema=self.schema, dim=self.dim))
+        self._execute(SCHEMA_SQL.format(schema=self.schema, dim=self.dim))
 
     def upsert(self, chunks: list[StoredChunk], embeddings: list[list[float]]) -> None:
         from pgvector import Vector
@@ -108,7 +125,7 @@ class PgVectorStore:
                 content_hash = EXCLUDED.content_hash, keywords = EXCLUDED.keywords,
                 embedding = EXCLUDED.embedding, updated_at = now()
         """
-        with self._conn.cursor() as cur:
+        with self._pool.connection() as conn, conn.cursor() as cur:
             for chunk, embedding in zip(chunks, embeddings, strict=True):
                 cur.execute(
                     sql,
@@ -129,21 +146,21 @@ class PgVectorStore:
         current = set(self.existing_hashes())
         stale = sorted(current - keep_ids)
         if stale:
-            self._conn.execute(f"DELETE FROM {self.schema}.chunks WHERE chunk_id = ANY(%s)", (stale,))
+            self._execute(f"DELETE FROM {self.schema}.chunks WHERE chunk_id = ANY(%s)", (stale,))
         return len(stale)
 
     def existing_hashes(self) -> dict[str, str]:
-        rows = self._conn.execute(f"SELECT chunk_id, content_hash FROM {self.schema}.chunks").fetchall()
+        rows = self._execute(f"SELECT chunk_id, content_hash FROM {self.schema}.chunks")
         return {r[0]: r[1] for r in rows}
 
     def vector_search(self, embedding: list[float], k: int) -> list[Hit]:
         from pgvector import Vector
 
-        rows = self._conn.execute(
+        rows = self._execute(
             f"SELECT {COLUMNS}, 1 - (embedding <=> %s) AS score FROM {self.schema}.chunks "
             "ORDER BY embedding <=> %s LIMIT %s",
             (Vector(embedding), Vector(embedding), k),
-        ).fetchall()
+        )
         return [Hit(StoredChunk(*row[:7]), float(row[7])) for row in rows]
 
     def keyword_search(self, query: str, k: int) -> list[Hit]:
@@ -151,24 +168,21 @@ class PgVectorStore:
         terms = " | ".join(re.findall(r"[A-Za-z0-9]{2,}", query + " " + code_keywords(query.upper())))
         if not terms:
             return []
-        rows = self._conn.execute(
+        rows = self._execute(
             f"SELECT {COLUMNS}, ts_rank_cd(tsv, q) AS score "
             f"FROM {self.schema}.chunks, to_tsquery('english', %s) AS q "
             "WHERE tsv @@ q ORDER BY score DESC LIMIT %s",
             (terms, k),
-        ).fetchall()
+        )
         return [Hit(StoredChunk(*row[:7]), float(row[7])) for row in rows]
 
     def get(self, chunk_ids: list[str]) -> list[StoredChunk]:
-        rows = self._conn.execute(
-            f"SELECT {COLUMNS} FROM {self.schema}.chunks WHERE chunk_id = ANY(%s)",
-            (chunk_ids,),
-        ).fetchall()
+        rows = self._execute(f"SELECT {COLUMNS} FROM {self.schema}.chunks WHERE chunk_id = ANY(%s)", (chunk_ids,))
         return [StoredChunk(*row) for row in rows]
 
     def count(self) -> int:
-        row = self._conn.execute(f"SELECT count(*) FROM {self.schema}.chunks").fetchone()
-        return int(row[0]) if row else 0
+        rows = self._execute(f"SELECT count(*) FROM {self.schema}.chunks")
+        return int(rows[0][0]) if rows else 0
 
 
 WORD = re.compile(r"[a-z0-9]{2,}")

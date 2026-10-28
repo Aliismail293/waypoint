@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+data/raw/
+tests/
+evals/
+infra/
+docs/
+.env
+WAYPOINT_SPEC.md
