@@ -96,14 +96,7 @@ def create_app(settings: Settings | None = None, runtime: WaypointRuntime | None
         rt: WaypointRuntime = state["runtime"]
         started = time.perf_counter()
         answer = await rt.ask(user.user_id, body.message, body.session_id)
-        citations = []
-        if answer.citations and rt.deps is not None:
-            found = {c.chunk_id: c for c in rt.deps.retriever.store.get(answer.citations)}
-            citations = [
-                Citation(chunk_id=cid, heading=found[cid].heading, url=found[cid].source_url)
-                for cid in answer.citations
-                if cid in found
-            ]
+        citations = [Citation(**c) for c in rt.citation_sources(answer.citations)]
         metrics = answer.metrics() | {"server_ms": round((time.perf_counter() - started) * 1000, 1)}
         return ChatResponse(answer=answer.text, citations=citations, session_id=answer.session_id, metrics=metrics)
 

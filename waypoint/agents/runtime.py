@@ -308,6 +308,17 @@ class WaypointRuntime:
         runtime.deps = deps
         return runtime
 
+    def citation_sources(self, chunk_ids: list[str]) -> list[dict[str, str]]:
+        """Heading and calendar URL for each cited chunk, in citation order."""
+        if not chunk_ids or self.deps is None:
+            return []
+        found = {c.chunk_id: c for c in self.deps.retriever.store.get(chunk_ids)}
+        return [
+            {"chunk_id": cid, "heading": found[cid].heading, "url": found[cid].source_url}
+            for cid in chunk_ids
+            if cid in found
+        ]
+
     async def ask(self, user_id: str, text: str, session_id: str | None = None) -> Answer:
         session = None
         if session_id:
