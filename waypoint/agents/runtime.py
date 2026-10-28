@@ -40,7 +40,10 @@ from waypoint.safety import COURSE_CODE, flag_unknown_codes, redact_pii, scope_c
 
 APP_NAME = "waypoint"
 tracer = trace.get_tracer("waypoint")
-CITATION = re.compile(r"\[(cal:[a-z0-9-]+#[a-z0-9-]+)\]")
+CHUNK_ID = r"cal:[a-z0-9-]+#[a-z0-9-]+"
+CITATION = re.compile(rf"\[({CHUNK_ID})\]")
+# Models sometimes group several ids in one bracket: [cal:a#x, cal:a#y]. Split those into [id][id].
+CITATION_GROUP = re.compile(rf"\[\s*({CHUNK_ID}(?:\s*[,;]\s*{CHUNK_ID})+)\s*\]")
 
 
 @dataclass
@@ -188,6 +191,7 @@ def check_citations(text: str, retrieved: list[str]) -> tuple[str, list[str], li
     so the UI never shows a source link that doesn't back the claim. Returns (text, valid, invalid).
     """
     allowed = set(retrieved)
+    text = CITATION_GROUP.sub(lambda m: "".join(f"[{c}]" for c in re.split(r"\s*[,;]\s*", m.group(1))), text)
     cited = list(dict.fromkeys(CITATION.findall(text)))
     invalid = [c for c in cited if c not in allowed]
     for chunk_id in invalid:

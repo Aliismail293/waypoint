@@ -16,3 +16,4 @@ evals/results/*.html
 *.tfstate.*
 *.tfplan
 *.tfvars
+!evals/golden/store.db
