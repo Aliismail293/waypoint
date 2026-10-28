@@ -117,6 +117,39 @@ async function init() {
   else window.addEventListener("load", start);
 }
 
+function postJson(path, body) {
+  return fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${state.idToken}` },
+    body: JSON.stringify(body),
+  });
+}
+
+// Under every answer: thumbs up/down and "Ask an advisor". Only ids and the rating are sent, never text.
+window.addEventListener("waypoint:answer", (event) => {
+  const { element, data } = event.detail;
+  const ids = { session_id: data.session_id, answer_id: data.answer_id };
+  const bar = document.createElement("div");
+  bar.className = "feedback";
+  bar.innerHTML =
+    '<span>Helpful?</span>' +
+    '<button type="button" data-rating="1" aria-label="Helpful">👍</button>' +
+    '<button type="button" data-rating="-1" aria-label="Not helpful">👎</button>' +
+    `<a class="escalate" href="${escapeHtml(state.advisorUrl)}" target="_blank" rel="noopener">Ask an advisor</a>`;
+  bar.querySelectorAll("button").forEach((button) =>
+    button.addEventListener("click", async () => {
+      bar.querySelectorAll("button").forEach((b) => b.classList.remove("chosen"));
+      button.classList.add("chosen");
+      await postJson("/api/feedback", { ...ids, rating: Number(button.dataset.rating) }).catch(() => {});
+    }),
+  );
+  // The link opens normally; the escalation is recorded alongside (it must not block the navigation).
+  bar.querySelector(".escalate").addEventListener("click", () => {
+    postJson("/api/escalate", ids).catch(() => {});
+  });
+  element.appendChild(bar);
+});
+
 $("ask").addEventListener("submit", (e) => {
   e.preventDefault();
   const message = $("message").value.trim();

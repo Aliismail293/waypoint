@@ -83,3 +83,29 @@ def test_dev_skip_auth_is_ignored_on_cloud_run(monkeypatch):
 def test_message_length_is_capped():
     with client_for(dev_skip_auth=True) as client:
         assert client.post("/api/chat", json={"message": "x" * 2001}).status_code == 422
+
+
+def test_feedback_escalation_and_operator_stats(monkeypatch):
+    from waypoint.analytics import MemoryUsageStore
+
+    claims = {"value": fake_claims("cid", email="student@mail.utoronto.ca", sub="s1")}
+    monkeypatch.setattr(auth.id_token, "verify_oauth2_token", lambda token, req, audience=None: claims["value"])
+    settings = Settings(**(OFFLINE | {"google_client_id": "cid", "operator_emails": "op@example.com"}))
+    usage = MemoryUsageStore()
+    app = create_app(settings, WaypointRuntime.from_settings(settings), usage)
+    headers = {"Authorization": "Bearer t"}
+    with TestClient(app) as client:
+        chat = client.post("/api/chat", json={"message": "What does MAT224 unlock?"}, headers=headers).json()
+        ids = {"session_id": chat["session_id"], "answer_id": chat["answer_id"]}
+        assert client.post("/api/feedback", json=ids | {"rating": -1}, headers=headers).json() == {"ok": True}
+        assert client.post("/api/feedback", json=ids | {"rating": 1}, headers=headers).status_code == 200
+        assert client.post("/api/feedback", json=ids | {"rating": 5}, headers=headers).status_code == 422
+        assert client.post("/api/escalate", json=ids, headers=headers).json()["advisor_url"].startswith("https://")
+        assert client.get("/api/stats", headers=headers).status_code == 403  # students can't read stats
+
+        claims["value"] = fake_claims("cid", email="op@example.com", sub="op")
+        stats = client.get("/api/stats", headers=headers).json()
+    assert stats["users"] == 1 and stats["questions"] == 1
+    assert stats["rated_answers"] == 1 and stats["thumbs_up_rate"] == 1.0  # latest click wins
+    assert stats["escalation_rate"] == 1.0
+    assert all("s1" not in e.user and "MAT224" not in str(e) for e in usage.all())  # no raw ids, no text
