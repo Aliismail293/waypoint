@@ -71,9 +71,7 @@ class MockLlm(BaseLlm):
 
     def _respond(self, llm_request: LlmRequest) -> LlmResponse:
         last = llm_request.contents[-1] if llm_request.contents else None
-        tool_results = (
-            [p.function_response for p in (last.parts or []) if p.function_response] if last else []
-        )
+        tool_results = [p.function_response for p in (last.parts or []) if p.function_response] if last else []
         if tool_results:
             return _text_response(_summarise(tool_results))
 
