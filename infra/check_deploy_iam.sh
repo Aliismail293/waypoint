@@ -3,7 +3,7 @@
 # Source deploys build as the default compute SA. Without push access, Cloud Build's docker step succeeds
 # and the build then fails at PUSH with FAILED_PRECONDITION and no step logs. Grants nothing; prints the fix.
 set -euo pipefail
-P=${1:?usage: check_deploy_iam.sh PROJECT}
+P=${1:-waypoint-513003}
 PN=$(gcloud projects describe "$P" --format='value(projectNumber)')
 BUILD_SA="${PN}-compute@developer.gserviceaccount.com"
 RUN_SA="waypoint-run@${P}.iam.gserviceaccount.com"

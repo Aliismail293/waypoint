@@ -56,11 +56,11 @@ All 7 imported resources import with **no attribute changes** on the first plan,
 | `google_project_iam_member.run["roles/aiplatform.user"]` | create |
 | `google_project_iam_member.run["roles/cloudsql.client"]` | create |
 | `google_project_iam_member.run["roles/bigquery.jobUser"]` | create |
+| `google_project_iam_member.run["roles/bigquery.dataEditor"]` (project-level; dataset-level IAM needs allowlisting) | create |
 | `google_project_iam_member.run["roles/datastore.user"]` | create |
 | `google_project_iam_member.run["roles/cloudtrace.agent"]` | create |
 | `google_project_iam_member.run["roles/logging.logWriter"]` | create |
 | `google_project_iam_member.run["roles/monitoring.metricWriter"]` | create |
-| `google_bigquery_dataset_iam_member.run_data_editor` (dataset `waypoint` only) | create |
 | `google_secret_manager_secret_iam_member.run_accessor["db-password"]` | create |
 | `google_secret_manager_secret_iam_member.run_accessor["langfuse-public-key"]` | create |
 | `google_secret_manager_secret_iam_member.run_accessor["langfuse-secret-key"]` | create |
@@ -72,6 +72,12 @@ All 7 imported resources import with **no attribute changes** on the first plan,
 | `google_billing_budget.monthly[0]` (25 CAD/month, 50/90/100%) | create |
 
 ## Things to know before applying
+
+- **Re-planned on 2026-10-28 after the first deploy:** still 7 to import, 24 to add, 0 to change, 0 to
+  destroy. The plan still *creates* `google_service_account.run` and both `google_cloud_run_v2_service.app`
+  services, but `infra/bootstrap_iam.sh` and the deploy scripts have since created them. An apply as-is
+  would fail with "already exists". Add `import {}` blocks for them first. The project IAM members are
+  additive, so creating ones that already exist is harmless.
 
 - **Budget currency is CAD**, not USD: the billing account bills in CAD and the Budgets API rejects a
   budget in another currency. 25 CAD is about 18 USD; raise `budget_amount` if you meant 25 USD.

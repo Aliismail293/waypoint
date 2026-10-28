@@ -22,6 +22,13 @@ infra/deploy.sh               # builds from source with Cloud Build, deploys a n
 gcloud run services describe waypoint --region us-central1 --format='value(status.url)'
 ```
 
+`bootstrap_iam.sh` is safe to re-run. It prints each grant as it goes, shows every error, and stops at the
+first failure, printing the failing command and "IAM bootstrap NOT complete". "IAM bootstrap done" means
+every grant succeeded. BigQuery data access (`roles/bigquery.dataEditor`) is granted at project level,
+because dataset-level grants (`bq add-iam-policy-binding`) fail on this project with "This feature
+requires allowlisting". The project has one dataset, so the effective scope is the same. Terraform
+(`infra/terraform/iam.tf`) matches.
+
 `deploy.sh` first runs `infra/check_deploy_iam.sh`, a read-only check that prints the exact grant
 command if the build service account is missing a role. Without push access, a source build looks like
 this:

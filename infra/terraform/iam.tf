@@ -10,11 +10,14 @@ resource "google_service_account" "run" {
 locals {
   run_sa_member = "serviceAccount:${google_service_account.run.email}"
 
-  # Gemini/embeddings, Cloud SQL connector, BigQuery jobs, Firestore sessions, and telemetry.
+  # Gemini/embeddings, Cloud SQL connector, BigQuery jobs and table data, Firestore sessions, and telemetry.
+  # BigQuery data access is project-level: dataset-level IAM needs allowlisting on this project, and the
+  # project has one dataset (`waypoint`), so the effective scope is the same today.
   run_project_roles = toset([
     "roles/aiplatform.user",
     "roles/cloudsql.client",
     "roles/bigquery.jobUser",
+    "roles/bigquery.dataEditor",
     "roles/datastore.user",
     "roles/cloudtrace.agent",
     "roles/logging.logWriter",
@@ -27,13 +30,6 @@ resource "google_project_iam_member" "run" {
   project  = var.project_id
   role     = each.key
   member   = local.run_sa_member
-}
-
-# Data access is scoped to the one dataset rather than granted project-wide.
-resource "google_bigquery_dataset_iam_member" "run_data_editor" {
-  dataset_id = google_bigquery_dataset.waypoint.dataset_id
-  role       = "roles/bigquery.dataEditor"
-  member     = local.run_sa_member
 }
 
 # Per-secret access, so a future secret in the project is not readable by default.

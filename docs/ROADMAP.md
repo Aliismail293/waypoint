@@ -6,7 +6,6 @@ the next step.
 | Item | Status | Why | Next step |
 |---|---|---|---|
 | Discovery write-up (`docs/DISCOVERY.md`) | Not started | Skipped for this build. It needs a real stakeholder and students | Interview an advisor and 3–5 students, then reprioritise this list |
-| Deploy `waypoint` and `fdekit-demo` | Code and scripts ready, not deployed | The build session wasn't permitted to grant IAM roles | Review and run `infra/bootstrap_iam.sh`, then `infra/deploy.sh` and `fdekit-demo/deploy.sh`. Add both URLs as authorised JavaScript origins |
 | Real launch (society channel, Discord, Reddit) | Not done | Needs a deployed service, and posting is a human decision | Launch to a small group first. Usage tracking, thumbs and escalation are built |
 | Usage numbers, resume bullets | [TBD] | No users yet. Numbers must be real | `uv run python -m waypoint.analytics` after launch |
 | Publish fde-kit to PyPI | Package builds (`uv build`), not published | Out of scope for this build | Pick a free name, add a release workflow with trusted publishing, tag 0.1.0 |

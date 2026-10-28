@@ -92,15 +92,16 @@ text, and status codes where numbers should be. It went from choosing the datase
 
 ## Launch
 
-[TBD] Not deployed yet. Deployment waits on IAM grants for the runtime service account
-(`infra/bootstrap_iam.sh`). Thumbs up/down, an "ask an advisor" link and usage tracking are built and
-tested, so the launch numbers will be real. Users: [TBD]. Questions answered without escalation: [TBD].
+Deployed on Cloud Run, scaling to zero: <https://waypoint-48349810745.us-central1.run.app>. On the first
+live check, the 3 demo questions were answered correctly in 6.5–11.1 s. Two answers cited the calendar,
+and the timetable answer was labelled as sample data. Not launched to students yet. Thumbs up/down, an
+"ask an advisor" link and usage tracking are built and tested, so the launch numbers will be real. Users: [TBD]. Questions answered without escalation: [TBD].
 Thumbs-up rate: [TBD].
 
 ## What I'd do next
 
 1. Run discovery with an advisor and a few students before launch, and let it reorder this list.
 2. Widen data coverage (STA, CSC and the other departments), which is the main cause of invalid plans.
-3. Deploy, launch to a small group, and report the usage numbers.
+3. Launch to a small group and report the usage numbers.
 4. Re-measure state optimisation on longer conversations (15+ turns, 10+ conversations per arm).
 5. Publish fde-kit and file the three upstream issues after re-checking them on the latest ADK.

@@ -55,8 +55,8 @@ Raw output: `eval_results.json`.
 Caveats, so the number isn't over-read:
 - The coding agent that built Waypoint did this work in the same session, so it's agent time, not a
   person's.
-- It excludes building fde-kit itself and the deployment, which is blocked on the same IAM grants as
-  Waypoint (see the root README).
+- It excludes building fde-kit itself and the deployment, which waited on the same IAM grants as Waypoint.
+  The demo is live at <https://fdekit-demo-48349810745.us-central1.run.app>.
 - Rejecting the first candidate dataset (City of Toronto: licence not stated) took a few more minutes
   before the clock started.
 

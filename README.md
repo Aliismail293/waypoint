@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" alt="Waypoint logo" width="120" height="120"></p>
+
 # Waypoint
 
 Waypoint is a multi-agent degree-planning copilot for University of Toronto Mississauga students. Ask
@@ -7,8 +9,9 @@ queries course data in BigQuery, one reaches a legacy timetable through a custom
 planner builds a plan that deterministic code checks. Every factual claim cites the calendar passage it
 came from, and every request is traced with tokens, cost and latency.
 
-**Status: v0.3 (Phase 3: built and evaluated, not deployed yet).** Live URL: [TBD after deploy]. Users:
-[TBD]. The calendar corpus currently covers
+**Status: v0.3 (Phase 3: deployed).** Live URL: <https://waypoint-48349810745.us-central1.run.app>
+(sign in with Google). Second deployment, a labelled demo built with fde-kit:
+<https://fdekit-demo-48349810745.us-central1.run.app>. Users: [TBD]. The calendar corpus currently covers
 the Mathematical Sciences section (4 programs, 59 MAT courses). Timetable data is **synthetic sample data**
 (see [Data sources](#data-sources)).
 
