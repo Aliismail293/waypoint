@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # Model provider: "mock" runs fully offline (tests, local dev); "vertex" makes real calls.
     llm: str = "mock"
     embeddings: str = "mock"
+    # Data backends: "memory" loads data/corpus/*.jsonl (offline); "pgvector" / "bigquery" use GCP.
+    store: str = "memory"
+    catalog: str = "memory"
 
     gcp_project: str = "waypoint-513003"
     gcp_region: str = "us-central1"
@@ -36,9 +39,12 @@ class Settings(BaseSettings):
     bq_dataset: str = "waypoint"
 
     # Budget guards (spec ground rule 5).
-    max_output_tokens: int = 1024
-    max_llm_calls_per_request: int = 12
-    max_requests_per_user_per_day: int = 60
+    # Thinking tokens count toward max_output_tokens on Gemini 3.x, so leave room for them.
+    max_output_tokens: int = 4096
+    thinking_level: str = "minimal"
+    # Model calls per user request, counted across the orchestrator AND every specialist it calls.
+    max_model_calls_per_request: int = 16
+    max_requests_per_user_per_day: int = 30
 
     # Auth. Empty client id = sign-in not configured, and the chat API refuses requests (fail closed).
     google_client_id: str = ""

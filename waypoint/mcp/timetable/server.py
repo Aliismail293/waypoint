@@ -38,6 +38,24 @@ def build_server(adapter: TimetableAdapter | None = None) -> MCPServer:
         }
 
     @server.tool()
+    def find_sections(
+        term: str, department: str = "", days: list[str] | None = None, after: str = "", before: str = ""
+    ) -> dict:
+        """Find sections in a term whose every meeting fits a schedule. department: course prefix like "MAT"
+        or "STA" (empty = all). days: e.g. ["Tuesday", "Thursday"]. after/before: 24h times like "12:00"
+        and "18:00" (an afternoon is 12:00-18:00)."""
+        try:
+            sections = adapter.find_sections(term, department, days, after, before)
+        except ValueError as exc:
+            return {"error": str(exc)}
+        return {
+            "term": term,
+            "count": len(sections),
+            "data_source": adapter.source.label,
+            "sections": [s.model_dump() for s in sections],
+        }
+
+    @server.tool()
     def get_section(section_id: str) -> dict:
         """Get one section by id, e.g. "MAT224H5-20271-LEC0101" (course-session-section)."""
         try:

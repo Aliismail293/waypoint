@@ -40,6 +40,7 @@ class Course:
     other: dict[str, str] = field(default_factory=dict)
     area: str = ""
     source_url: str = ""
+    chunk_id: str = ""
 
     @property
     def credits(self) -> float:
@@ -65,6 +66,7 @@ class Program:
     course_codes: list[str]
     area: str
     source_url: str
+    chunk_ids: list[str] = field(default_factory=list)
 
     def to_row(self) -> dict:
         return asdict(self)
@@ -222,9 +224,11 @@ def _parse_course(page: ParsedPage, doc_id: str, label: str, content: Tag) -> No
             course.delivery = value
         else:
             course.other[name] = value
-    page.courses.append(course)
     body = "\n".join([f"{code}: {title}", course.description, *field_lines])
-    page.chunks += make_chunks(doc_id, slugify(code), "course", f"{page.title} > {code} {title}", body, url)
+    chunks = make_chunks(doc_id, slugify(code), "course", f"{page.title} > {code} {title}", body, url)
+    course.chunk_id = chunks[0].chunk_id
+    page.courses.append(course)
+    page.chunks += chunks
 
 
 def _parse_program(page: ParsedPage, doc_id: str, label: str, content: Tag) -> None:
@@ -252,18 +256,17 @@ def _parse_program(page: ParsedPage, doc_id: str, label: str, content: Tag) -> N
         if text:
             sections[current].append(text)
     texts = {k: "\n".join(v) for k, v in sections.items()}
-    page.programs.append(
-        Program(
-            code=code,
-            name=name,
-            program_type=program_type,
-            description=texts["description"],
-            enrolment_requirements=texts["enrolment"],
-            completion_requirements="\n".join(filter(None, [texts["completion"], texts["notes"]])),
-            course_codes=sorted(set(COURSE_CODE.findall(content.get_text(" ")))),
-            area=page.title,
-            source_url=url,
-        )
+    first_chunk = len(page.chunks)
+    program = Program(
+        code=code,
+        name=name,
+        program_type=program_type,
+        description=texts["description"],
+        enrolment_requirements=texts["enrolment"],
+        completion_requirements="\n".join(filter(None, [texts["completion"], texts["notes"]])),
+        course_codes=sorted(set(COURSE_CODE.findall(content.get_text(" ")))),
+        area=page.title,
+        source_url=url,
     )
     anchor = slugify(code)
     heading = f"{page.title} > {label}"
@@ -276,6 +279,8 @@ def _parse_program(page: ParsedPage, doc_id: str, label: str, content: Tag) -> N
     if completion:
         body = f"Completion requirements for {label}:\n{completion}"
         page.chunks += make_chunks(doc_id, f"{anchor}-completion", "program", heading + " > Completion", body, url)
+    program.chunk_ids = [c.chunk_id for c in page.chunks[first_chunk:]]
+    page.programs.append(program)
 
 
 def _parse_plain(page: ParsedPage, main: Tag) -> None:

@@ -137,9 +137,10 @@ def _fill_args(tool: Any, user_text: str) -> dict[str, Any]:
 
 def _summarise(results: list[types.FunctionResponse]) -> str:
     rendered = []
+    cited: set[str] = set()
     for result in results:
         payload = json.dumps(result.response, default=str)
+        cited |= set(CHUNK_ID.findall(payload))
         rendered.append(f"{result.name}: {payload[:600]}")
-    cited = sorted(set(CHUNK_ID.findall(" ".join(rendered))))
-    citation_line = " ".join(f"[{cid}]" for cid in cited)
+    citation_line = " ".join(f"[{cid}]" for cid in sorted(cited))
     return "(mock answer) " + " | ".join(rendered) + (f"\nSources: {citation_line}" if cited else "")

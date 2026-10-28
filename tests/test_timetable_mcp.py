@@ -92,7 +92,7 @@ def test_sample_source_is_labelled_synthetic():
 async def test_mcp_tools_in_process():
     server = build_server()
     names = {t.name for t in await server.list_tools()}
-    assert names == {"search_sections", "get_section"}
+    assert names == {"search_sections", "find_sections", "get_section"}
     result = await server.call_tool("get_section", {"section_id": "MAT224H5-20271-LEC0101"})
     assert json.loads(result.content[0].text)["found"] is True
 
@@ -105,3 +105,10 @@ async def test_mcp_server_over_stdio():
         payload = json.loads(result.content[0].text)
         assert payload["count"] == 1
         assert "synthetic" in payload["data_source"]
+
+
+def test_find_sections_by_schedule():
+    adapter = TimetableAdapter(SampleFileSource())
+    fits = adapter.find_sections("2027 Winter", "STA", ["Tue", "Thu"], after="12:00", before="18:00")
+    assert {s.course for s in fits} == {"STA256H5", "STA260H5", "STA302H5"}
+    assert all(m.day in ("Tuesday", "Thursday") for s in fits for m in s.meetings)

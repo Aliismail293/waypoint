@@ -31,6 +31,7 @@ COURSE_SCHEMA = [
     ("other", "STRING", "NULLABLE"),
     ("area", "STRING", "NULLABLE"),
     ("source_url", "STRING", "NULLABLE"),
+    ("chunk_id", "STRING", "NULLABLE"),
     ("loaded_at", "TIMESTAMP", "REQUIRED"),
 ]
 PROGRAM_SCHEMA = [
@@ -43,6 +44,7 @@ PROGRAM_SCHEMA = [
     ("course_codes", "STRING", "REPEATED"),
     ("area", "STRING", "NULLABLE"),
     ("source_url", "STRING", "NULLABLE"),
+    ("chunk_ids", "STRING", "REPEATED"),
     ("loaded_at", "TIMESTAMP", "REQUIRED"),
 ]
 PREREQ_SCHEMA = [

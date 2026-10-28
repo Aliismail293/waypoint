@@ -57,3 +57,38 @@ def test_only_allow_listed_queries():
     with pytest.raises(ValueError):
         InMemoryCatalog().run("DROP TABLE courses", {})
     assert all("@" in sql or name == "list_programs" for name, sql in NAMED_QUERIES.items())
+
+
+@pytest.mark.parametrize(
+    ("name", "params"),
+    [
+        ("get_course", {"code": "MAT224"}),
+        ("search_courses", {"pattern": "%algebra%", "department": ""}),
+        ("courses_unlocked_by", {"code": "MAT224"}),
+        ("get_program", {"code": "ERMAJ2511", "pattern": "%"}),
+        ("list_programs", {}),
+    ],
+)
+def test_in_memory_catalog_returns_same_columns_as_sql(name, params):
+    sql = NAMED_QUERIES[name]
+    select = sql.split("SELECT", 1)[1].split("FROM", 1)[0].replace("{dataset}", "")
+    expected = {col.strip().split(".")[-1] for col in select.split(",")}
+    if name == "get_course":
+        from waypoint.tools.catalog import COURSE_COLUMNS
+
+        expected = {c.strip() for c in COURSE_COLUMNS.split(",")}
+    rows = InMemoryCatalog().run(name, params)
+    assert rows and set(rows[0]) == expected
+
+
+def test_program_course_status_one_call_overview():
+    from waypoint.tools.courses import make_planning_tools
+
+    (status,) = make_planning_tools(InMemoryCatalog())
+    result = status("ERMAJ2511", ["MAT102H5", "MAT223H5"])
+    by_code = {c["code"]: c for c in result["courses"]}
+    assert result["found"] and result["chunk_ids"]
+    assert by_code["MAT102H5"]["completed"] is True
+    assert by_code["MAT224H5"]["prerequisites_status"] == "met"
+    assert by_code["MAT301H5"]["prerequisites_status"] == "unmet"
+    assert any(c.get("in_waypoint_data") is False for c in result["courses"])  # e.g. STA/CSC courses

@@ -57,3 +57,45 @@ def make_course_tools(catalog: Catalog) -> list[Callable[..., Any]]:
         }
 
     return [get_course, search_courses, courses_unlocked_by, get_program, list_programs, check_course_prerequisites]
+
+
+def make_planning_tools(catalog: Catalog) -> list[Callable[..., Any]]:
+    def program_course_status(program: str, completed_courses: list[str]) -> dict:
+        """One-call overview for planning: a program's requirement text plus, for every course it mentions,
+        title, credits, whether it's completed, and whether its prerequisites are met by completed courses
+        (met / unmet / unclear). program: code like "ERMAJ2511" or part of the name."""
+        found = make_course_tools(catalog)[3](program)  # get_program
+        if not found["programs"]:
+            return {"found": False, "program": program}
+        prog = found["programs"][0]
+        done = {normalise_code(c) for c in completed_courses}
+        courses = []
+        for code in prog.get("course_codes") or []:
+            rows = catalog.run("get_course", {"code": code})
+            if not rows:
+                courses.append({"code": code, "in_waypoint_data": False})
+                continue
+            course = rows[0]
+            completed = course["code"] in done or course["code"][:6] in done
+            prereq = check_prerequisites(course.get("prerequisites") or "", sorted(done))
+            courses.append(
+                {
+                    "code": course["code"],
+                    "title": course["title"],
+                    "credits": course["credits"],
+                    "completed": completed,
+                    "prerequisites_status": "n/a" if completed else prereq.status,
+                    "missing_prerequisites": [] if completed else prereq.missing,
+                    "chunk_id": course.get("chunk_id"),
+                }
+            )
+        return {
+            "found": True,
+            "code": prog["code"],
+            "name": prog["name"],
+            "completion_requirements": prog["completion_requirements"],
+            "chunk_ids": prog.get("chunk_ids") or [],
+            "courses": courses,
+        }
+
+    return [program_course_status]

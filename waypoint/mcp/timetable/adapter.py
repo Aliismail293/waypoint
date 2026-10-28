@@ -61,7 +61,9 @@ class Section(BaseModel):
 class TimetableSource(Protocol):
     label: str
 
-    def fetch_raw(self, course: str, session_code: str) -> list[dict]: ...
+    def fetch_raw(self, course: str, session_code: str) -> list[dict]:
+        """Raw records for one course (prefix match, e.g. "MAT224" or "MAT") in one session."""
+        ...
 
 
 class SampleFileSource:
@@ -162,6 +164,26 @@ class TimetableAdapter:
         sections = [normalise_record(r, self.source.label) for r in raw]
         self._cache[key] = (self._clock(), sections)
         return sections
+
+    def find_sections(
+        self, term: str, department: str = "", days: list[str] | None = None, after: str = "", before: str = ""
+    ) -> list[Section]:
+        """Sections in a term, optionally filtered by department prefix and by every meeting falling on the
+        given days within [after, before] (24h "HH:MM")."""
+        wanted_days = {DAYS.get(d.strip().upper()[:2], d) for d in days or []}
+        results = []
+        for section in self.search_sections(department.strip().upper(), term):
+            meetings = section.meetings
+            if not meetings:
+                continue
+            if wanted_days and not all(m.day in wanted_days for m in meetings):
+                continue
+            if after and not all(m.start >= after.zfill(5) for m in meetings):
+                continue
+            if before and not all(m.end <= before.zfill(5) for m in meetings):
+                continue
+            results.append(section)
+        return results
 
     def get_section(self, section_id: str) -> Section | None:
         course, session, _ = section_id.split("-", 2)
