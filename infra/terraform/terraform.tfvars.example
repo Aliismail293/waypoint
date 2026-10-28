@@ -14,6 +14,6 @@
 
 # Set false if you lack billing.budgets.* on the billing account.
 # enable_budget   = true
-# billing_account = "016B73-5EA57C-C8C383"
+# billing_account = "XXXXXX-XXXXXX-XXXXXX"
 # budget_amount   = 25
 # budget_currency = "CAD"
