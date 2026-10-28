@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars only if you need to override defaults. All values here are non-secret.
+
+# project_id      = "waypoint-513003"
+# region          = "us-central1"
+
+# Placeholder images: real images are deployed with infra/deploy.sh and ignored by Terraform.
+# waypoint_image    = "us-docker.pkg.dev/cloudrun/container/hello"
+# fdekit_demo_image = "us-docker.pkg.dev/cloudrun/container/hello"
+
+# fdekit_demo_env = {
+#   WAYPOINT_SERVICE_NAME = "fdekit-demo"
+#   WAYPOINT_LLM          = "mock"
+# }
+
+# Set false if you lack billing.budgets.* on the billing account.
+# enable_budget   = true
+# billing_account = "016B73-5EA57C-C8C383"
+# budget_amount   = 25
+# budget_currency = "CAD"
