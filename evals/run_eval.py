@@ -14,6 +14,7 @@ the API key is a short-lived `gcloud auth print-access-token`, never stored.
 import argparse
 import json
 import os
+import re
 import shutil
 import statistics
 import subprocess
@@ -46,9 +47,36 @@ def export_corpus() -> int:
     return len(rows)
 
 
+FENCE = re.compile(r"^\s*```(?:json)?\s*\n?(.*?)\n?\s*```\s*$", re.DOTALL)
+
+
+def strip_json_fence(text: str) -> str:
+    """'```json\n{...}\n```' -> '{...}'. Other text is returned unchanged."""
+    match = FENCE.match(text)
+    return match.group(1) if match else text
+
+
+def tolerate_fenced_json() -> None:
+    """Gemini sometimes wraps JSON replies in a ```json fence even when asked for bare JSON. ragaudit's judges
+    parse with json.loads and score an unparseable reply as *incorrect*, so in eval_v0's first run 14 of 21
+    answers were marked wrong for formatting alone. Strip the fence at the client so every judge sees JSON."""
+    from ragaudit.llm.client import LLMClient
+
+    if getattr(LLMClient.complete, "_strips_fence", False):
+        return
+    original = LLMClient.complete
+
+    def complete(self: LLMClient, system: str, user: str) -> str:
+        return strip_json_fence(original(self, system, user))
+
+    complete._strips_fence = True  # type: ignore[attr-defined]
+    LLMClient.complete = complete  # type: ignore[method-assign]
+
+
 def configure_llm(llm: str) -> None:
     os.environ["RAGAUDIT_LLM"] = llm
     if llm == "openai":
+        tolerate_fenced_json()
         project = os.environ.get("WAYPOINT_GCP_PROJECT", "waypoint-513003")
         os.environ["RAGAUDIT_API_BASE"] = VERTEX_OPENAI_BASE.format(project=project)
         os.environ["RAGAUDIT_API_KEY"] = (

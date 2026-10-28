@@ -38,3 +38,19 @@ def test_check_citations_drops_ids_not_retrieved():
     cleaned, valid, invalid = check_citations(text, ["cal:a#mat224h5"])
     assert valid == ["cal:a#mat224h5"] and invalid == ["cal:a#fake"]
     assert "[cal:a#fake]" not in cleaned and "[cal:a#mat224h5]" in cleaned
+
+
+def test_check_citations_splits_grouped_ids():
+    from waypoint.agents.runtime import check_citations
+
+    text = "The major [cal:a#intro-p1, cal:a#ermaj2512-completion; cal:a#fake] covers it."
+    cleaned, valid, invalid = check_citations(text, ["cal:a#intro-p1", "cal:a#ermaj2512-completion"])
+    assert valid == ["cal:a#intro-p1", "cal:a#ermaj2512-completion"] and invalid == ["cal:a#fake"]
+    assert cleaned == "The major [cal:a#intro-p1][cal:a#ermaj2512-completion] covers it."
+
+
+def test_eval_strips_json_fences():
+    from evals.run_eval import strip_json_fence
+
+    assert strip_json_fence('```json\n{"is_correct": true}\n```') == '{"is_correct": true}'
+    assert strip_json_fence('{"a": 1}') == '{"a": 1}'
