@@ -29,6 +29,28 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest -q
 
+  fde-kit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fde-kit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check && uv run mypy src && uv run pytest -q && uv build
+
+  fdekit-demo:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fdekit-demo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check . && uv run pytest -q
+
   eval-gate:
     runs-on: ubuntu-latest
     steps:

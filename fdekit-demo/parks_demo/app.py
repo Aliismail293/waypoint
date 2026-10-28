@@ -1,5 +1,6 @@
 """DEMO web app: sign in with Google, ask about Parks Canada attendance. `uvicorn parks_demo.app:app --port 8080`."""
 
+import json
 import logging
 from collections import defaultdict
 from contextlib import asynccontextmanager
@@ -18,6 +19,7 @@ from parks_demo.config import Settings, get_settings
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 STATIC = Path(__file__).parent / "static"
+logger = logging.getLogger("parks_demo")
 
 
 class Ask(BaseModel):
@@ -75,7 +77,7 @@ def create_app(settings: Settings | None = None, assistant: Assistant | None = N
             raise HTTPException(status_code=429, detail="Daily demo limit reached.")
         counts[key] += 1
         reply = await state["assistant"].ask(user, body.question)
-        logging.info({"message": "parks.request", **reply.metrics})
+        logger.info(json.dumps({"message": "parks.request", **reply.metrics}))  # one structured line per question
         return {"answer": reply.text, "metrics": reply.metrics}
 
     return app
