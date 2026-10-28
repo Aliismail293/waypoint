@@ -5,6 +5,7 @@ every agent, model call and tool call, including inside the specialists that Age
 per request: which chunks were retrieved, which tools ran, and token usage per agent (for cost).
 """
 
+import json
 import re
 import time
 from contextvars import ContextVar
@@ -35,6 +36,7 @@ from waypoint.llm.embeddings import get_embedder
 from waypoint.observability.cost import cost_usd
 from waypoint.observability.tracing import ObservabilityPlugin, hash_user, log_request_metrics, setup_tracing
 from waypoint.retrieval.hybrid import HybridRetriever
+from waypoint.safety import COURSE_CODE, flag_unknown_codes, redact_pii, scope_check
 
 APP_NAME = "waypoint"
 tracer = trace.get_tracer("waypoint")
@@ -64,6 +66,10 @@ class RequestRecord:
     limit_hit: bool = False
     invalid_citations: list[str] = field(default_factory=list)
     plan_checks: list[bool] = field(default_factory=list)  # critic's check_plan results, in order
+    seen_codes: set[str] = field(default_factory=set)  # course codes that appeared in any tool result
+    unknown_codes: list[str] = field(default_factory=list)
+    pii_redacted: list[str] = field(default_factory=list)
+    out_of_scope: bool = False
 
     @property
     def input_tokens(self) -> int:
@@ -161,6 +167,7 @@ class RecorderPlugin(BasePlugin):
             record.retrieved_chunk_ids += [i for i in ids if i not in record.retrieved_chunk_ids]
             if isinstance(result, dict) and result.get("error"):
                 record.tool_errors += 1
+            record.seen_codes |= set(COURSE_CODE.findall(json.dumps(result, default=str)))
             if tool.name == "check_plan" and isinstance(result, dict):
                 record.plan_checks.append(bool(result.get("valid")))
         return None
@@ -215,6 +222,9 @@ class Answer:
             "citations": len(self.citations),
             "invalid_citations": len(r.invalid_citations),
             "limit_hit": r.limit_hit,
+            "out_of_scope": r.out_of_scope,
+            "pii_redacted": r.pii_redacted,
+            "unknown_codes": len(r.unknown_codes),
             "critic_rounds": r.agents.count("plan_critic"),
             # Plan validity as the critic's deterministic check saw it: first draft vs. the plan that shipped.
             "plan_valid_first": r.plan_checks[0] if r.plan_checks else None,
@@ -289,6 +299,8 @@ class WaypointRuntime:
             session = await self.session_service.create_session(app_name=APP_NAME, user_id=user_id)
 
         record = RequestRecord()
+        # PII never reaches the model, the session store or the traces.
+        text, record.pii_redacted = redact_pii(text)
         token = current_record.set(record)
         started = time.perf_counter()
         final_text = ""
@@ -297,29 +309,43 @@ class WaypointRuntime:
             span.set_attribute("langfuse.user.id", hash_user(user_id))
             span.set_attribute("langfuse.session.id", session.id)
             try:
-                message = types.Content(role="user", parts=[types.Part(text=text)])
-                run_config = RunConfig(max_llm_calls=self.settings.max_model_calls_per_request)
-                async for event in self.runner.run_async(
-                    user_id=user_id, session_id=session.id, new_message=message, run_config=run_config
-                ):
-                    if event.author == self.root_agent_name and event.content and event.is_final_response():
-                        texts = [p.text for p in event.content.parts or [] if p.text and not p.thought]
-                        if texts:
-                            final_text = "\n".join(texts)
-            except LlmCallsLimitExceededError:
-                record.limit_hit = True
-                final_text = (
-                    "That question needed more steps than Waypoint allows per request. Try asking about one "
-                    "program, course or term at a time."
-                )
+                if (reply := scope_check(text)) is not None:
+                    record.out_of_scope = True
+                    final_text = reply
+                else:
+                    final_text = await self._run(user_id, session.id, text, record)
             finally:
                 current_record.reset(token)
             latency_ms = (time.perf_counter() - started) * 1000
             final_text, citations, invalid = check_citations(final_text, record.retrieved_chunk_ids)
             record.invalid_citations = invalid
+            known = record.seen_codes | set(COURSE_CODE.findall(text))
+            final_text, record.unknown_codes = flag_unknown_codes(final_text, known)
+            final_text, _ = redact_pii(final_text)
             answer = Answer(final_text, citations, record, latency_ms, session.id)
             metrics = answer.metrics()
             for key, value in metrics.items():
-                span.set_attribute(f"waypoint.{key}", value)
+                if value is not None:  # OTel attributes can't be None (plan validity is None for non-plans)
+                    span.set_attribute(f"waypoint.{key}", value)
             log_request_metrics({"user": hash_user(user_id), "session": session.id, **metrics})
         return answer
+
+    async def _run(self, user_id: str, session_id: str, text: str, record: RequestRecord) -> str:
+        final_text = ""
+        try:
+            message = types.Content(role="user", parts=[types.Part(text=text)])
+            run_config = RunConfig(max_llm_calls=self.settings.max_model_calls_per_request)
+            async for event in self.runner.run_async(
+                user_id=user_id, session_id=session_id, new_message=message, run_config=run_config
+            ):
+                if event.author == self.root_agent_name and event.content and event.is_final_response():
+                    texts = [p.text for p in event.content.parts or [] if p.text and not p.thought]
+                    if texts:
+                        final_text = "\n".join(texts)
+        except LlmCallsLimitExceededError:
+            record.limit_hit = True
+            final_text = (
+                "That question needed more steps than Waypoint allows per request. Try asking about one "
+                "program, course or term at a time."
+            )
+        return final_text
