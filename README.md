@@ -7,7 +7,8 @@ queries course data in BigQuery, one reaches a legacy timetable through a custom
 planner builds a plan that deterministic code checks. Every factual claim cites the calendar passage it
 came from, and every request is traced with tokens, cost and latency.
 
-**Status: v0.1 (Phase 1).** Live URL: [TBD after deploy]. Users: [TBD]. The calendar corpus currently covers
+**Status: v0.3 (Phase 3: built and evaluated, not deployed yet).** Live URL: [TBD after deploy]. Users:
+[TBD]. The calendar corpus currently covers
 the Mathematical Sciences section (4 programs, 59 MAT courses). Timetable data is **synthetic sample data**
 (see [Data sources](#data-sources)).
 
@@ -104,6 +105,23 @@ WAYPOINT_LLM=vertex WAYPOINT_EMBEDDINGS=vertex WAYPOINT_STORE=pgvector WAYPOINT_
 Ingestion: `uv run python -m waypoint.ingest {fetch|parse|pgvector|bigquery}`.
 Deploy: `infra/bootstrap_iam.sh` (once), then `infra/deploy.sh`.
 Evals: see `evals/run_eval.py`.
+
+## More
+
+| Topic | Where |
+|---|---|
+| Design doc (architecture, choices, risks) | [`docs/DESIGN.md`](docs/DESIGN.md) |
+| Case study (problem → evals → what didn't work) | [`docs/CASE_STUDY.md`](docs/CASE_STUDY.md) |
+| What's deferred, and why | [`docs/ROADMAP.md`](docs/ROADMAP.md) |
+| Critic A/B, safety suite, CI eval gate | [`evals/README.md`](evals/README.md) |
+| Conversation-state before/after (a negative result) | [`docs/STATE_OPTIMISATION.md`](docs/STATE_OPTIMISATION.md) |
+| Runbook (deploy, rollback, budgets, alerts) | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) |
+| Waypoint as an MCP server | [`waypoint/mcp/waypoint/`](waypoint/mcp/waypoint/) |
+| MCP Toolbox config for BigQuery | [`infra/toolbox/`](infra/toolbox/) |
+| Terraform (validated and planned, not applied) | [`infra/terraform/`](infra/terraform/) |
+| fde-kit, the reusable pieces as a package | [`fde-kit/`](fde-kit/) |
+| Second deployment built with fde-kit (demo, Parks Canada open data) | [`fdekit-demo/`](fdekit-demo/) |
+| Upstream ADK issue drafts with repros (not filed) | [`docs/upstream-issues/`](docs/upstream-issues/) |
 
 ## Security
 
