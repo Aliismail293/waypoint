@@ -1,0 +1,275 @@
+{
+ "_notice": "SYNTHETIC SAMPLE DATA for developing the legacy-adapter MCP server. NOT real UTM timetable offerings: times, rooms, instructors and enrolment are invented. The live timetable source was not used because its terms of use are unclear (see docs).",
+ "records": [
+  {
+   "CRS_CD": "MAT102H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "MO 10:00-11:00 MN1210;WE 10:00-12:00 MN1210",
+   "INSTR": "Instructor A",
+   "CAP": "250",
+   "ENRL": "231",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT102H5",
+   "SESS": "20269",
+   "SECT": "TUT0101",
+   "MTG": "FR 09:00-10:00 DH2020",
+   "INSTR": "TBA",
+   "CAP": "30",
+   "ENRL": "28",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT102H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "TU 13:00-15:00 IB110;TH 13:00-14:00 IB110",
+   "INSTR": "Instructor B",
+   "CAP": "200",
+   "ENRL": "150",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT137H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "MO 14:00-16:00 MN1270;WE 14:00-15:00 MN1270",
+   "INSTR": "Instructor C",
+   "CAP": "300",
+   "ENRL": "299",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT139H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "MO 14:00-16:00 MN1270;WE 14:00-15:00 MN1270",
+   "INSTR": "Instructor C",
+   "CAP": "300",
+   "ENRL": "120",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT223H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "TU 09:00-11:00 DH2060;TH 09:00-10:00 DH2060",
+   "INSTR": "Instructor D",
+   "CAP": "200",
+   "ENRL": "190",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT223H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "MO 18:00-21:00 IB120",
+   "INSTR": "Instructor D",
+   "CAP": "150",
+   "ENRL": "60",
+   "DELIV": "ONLSYNC"
+  },
+  {
+   "CRS_CD": "MAT224H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "TU 13:00-15:00 DH2080;TH 13:00-14:00 DH2080",
+   "INSTR": "Instructor E",
+   "CAP": "120",
+   "ENRL": "87",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT224H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "WE 11:00-13:00 IB235;FR 11:00-12:00 IB235",
+   "INSTR": "Instructor E",
+   "CAP": "120",
+   "ENRL": "45",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT224H5",
+   "SESS": "20271",
+   "SECT": "LEC0102",
+   "MTG": "TU 15:00-17:00 DV2082;TH 15:00-16:00 DV2082",
+   "INSTR": "Instructor F",
+   "CAP": "80",
+   "ENRL": "12",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT232H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "MO 11:00-13:00 IB345;WE 11:00-12:00 IB345",
+   "INSTR": "Instructor G",
+   "CAP": "150",
+   "ENRL": "140",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT236H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "MO 11:00-13:00 IB345;WE 11:00-12:00 IB345",
+   "INSTR": "Instructor G",
+   "CAP": "150",
+   "ENRL": "80",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT244H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "TU 14:00-16:00 MN1210;TH 14:00-15:00 MN1210",
+   "INSTR": "Instructor H",
+   "CAP": "180",
+   "ENRL": "110",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT202H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "MO 15:00-17:00 DH2010;WE 15:00-16:00 DH2010",
+   "INSTR": "Instructor I",
+   "CAP": "120",
+   "ENRL": "100",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT301H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "TU 11:00-13:00 DV2074;TH 11:00-12:00 DV2074",
+   "INSTR": "Instructor J",
+   "CAP": "80",
+   "ENRL": "55",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT302H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "TU 13:00-15:00 DV3130;TH 13:00-14:00 DV3130",
+   "INSTR": "Instructor K",
+   "CAP": "60",
+   "ENRL": "30",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT334H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "WE 13:00-15:00 IB140;FR 13:00-14:00 IB140",
+   "INSTR": "Instructor L",
+   "CAP": "70",
+   "ENRL": "40",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT337H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "MO 09:00-11:00 DH2050;WE 09:00-10:00 DH2050",
+   "INSTR": "Instructor M",
+   "CAP": "60",
+   "ENRL": "20",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "MAT344H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "TU 15:00-17:00 IB250;TH 15:00-16:00 IB250",
+   "INSTR": "Instructor N",
+   "CAP": "90",
+   "ENRL": "70",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "STA256H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "TU 10:00-12:00 MN1270;TH 10:00-11:00 MN1270",
+   "INSTR": "Instructor O",
+   "CAP": "250",
+   "ENRL": "240",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "STA256H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "TU 14:00-16:00 IB110;TH 14:00-15:00 IB110",
+   "INSTR": "Instructor O",
+   "CAP": "200",
+   "ENRL": "90",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "STA258H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "MO 13:00-15:00 MN1210;WE 13:00-14:00 MN1210",
+   "INSTR": "Instructor P",
+   "CAP": "200",
+   "ENRL": "150",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "STA260H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "TU 15:00-17:00 DH2080;TH 15:00-16:00 DH2080",
+   "INSTR": "Instructor Q",
+   "CAP": "120",
+   "ENRL": "70",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "STA302H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "TU 13:00-15:00 IB120;TH 13:00-14:00 IB120",
+   "INSTR": "Instructor R",
+   "CAP": "150",
+   "ENRL": "100",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "STA304H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "FR 10:00-13:00 DV2082",
+   "INSTR": "Instructor S",
+   "CAP": "80",
+   "ENRL": "20",
+   "DELIV": "HYBR"
+  },
+  {
+   "CRS_CD": "CSC108H5",
+   "SESS": "20269",
+   "SECT": "LEC0101",
+   "MTG": "MO 09:00-11:00 IB110;WE 09:00-10:00 IB110",
+   "INSTR": "Instructor T",
+   "CAP": "300",
+   "ENRL": "298",
+   "DELIV": "INPER"
+  },
+  {
+   "CRS_CD": "CSC148H5",
+   "SESS": "20271",
+   "SECT": "LEC0101",
+   "MTG": "MO 09:00-11:00 IB110;WE 09:00-10:00 IB110",
+   "INSTR": "Instructor T",
+   "CAP": "300",
+   "ENRL": "200",
+   "DELIV": "INPER"
+  }
+ ]
+}

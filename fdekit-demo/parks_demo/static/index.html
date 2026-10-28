@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parks Canada visits — fde-kit demo</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root { --bg: #f6f7f4; --panel: #fff; --text: #1c1d1a; --muted: #62645d; --accent: #2f5d3a; --border: #dfe1da; --warn: #fff4d6; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #121412; --panel: #1b1e1b; --text: #ecece8; --muted: #a1a39c; --accent: #8fc79c; --border: #2d312c; --warn: #2c2716; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 20px 16px 40px; }
+    .demo { background: var(--warn); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+    h1 { font-size: 22px; margin: 16px 0 4px; } .muted { color: var(--muted); font-size: 14px; }
+    form { display: flex; gap: 8px; margin: 16px 0; } input { flex: 1; font: inherit; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+    button { font: inherit; border: 0; border-radius: 10px; padding: 0 16px; background: var(--accent); color: var(--bg); font-weight: 600; cursor: pointer; } button:disabled { opacity: .5; }
+    .answer { white-space: pre-wrap; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-top: 12px; }
+    .meta { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="demo"><strong>DEMO deployment.</strong> A second deployment of the Waypoint pattern, built with
+    <code>fde-kit</code> on public data (Parks Canada attendance, Open Government Licence – Canada). Not an official
+    Parks Canada service.</div>
+  <h1>How many people visited?</h1>
+  <p class="muted">Ask about visits to national parks and historic sites, fiscal years 2023-24 to 2025-26.</p>
+  <div id="signin"></div>
+  <form id="ask"><input id="q" maxlength="1000" placeholder="Which national park had the most visitors in 2025-26?" disabled><button id="go" disabled>Ask</button></form>
+  <div id="out"></div>
+</main>
+<script>
+"use strict";
+let token = null;
+const $ = (id) => document.getElementById(id);
+async function init() {
+  const cfg = await (await fetch("/api/config")).json();
+  if (!cfg.google_client_id) { $("signin").textContent = "Sign-in isn't configured on this server."; return; }
+  const start = () => {
+    google.accounts.id.initialize({ client_id: cfg.google_client_id, callback: (r) => { token = r.credential; $("q").disabled = $("go").disabled = false; $("signin").hidden = true; } });
+    google.accounts.id.renderButton($("signin"), { theme: "outline", size: "large" });
+  };
+  if (window.google?.accounts?.id) start(); else window.addEventListener("load", start);
+}
+$("ask").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const question = $("q").value.trim(); if (!question) return;
+  const box = document.createElement("div"); box.className = "answer"; box.textContent = "Looking it up…"; $("out").prepend(box);
+  $("go").disabled = true;
+  try {
+    const r = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ question }) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || r.status);
+    box.textContent = data.answer;
+    const meta = document.createElement("div"); meta.className = "meta";
+    meta.textContent = `${(data.metrics.latency_ms / 1000).toFixed(1)} s · ${data.metrics.model_calls} model calls · $${data.metrics.cost_usd.toFixed(4)}`;
+    box.appendChild(meta);
+  } catch (err) { box.textContent = `Error: ${err.message}`; }
+  finally { $("go").disabled = false; }
+});
+init();
+</script>
+</body>
+</html>

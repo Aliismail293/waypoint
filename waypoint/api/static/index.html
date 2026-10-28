@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waypoint — UTM degree planning</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="logo" aria-hidden="true">◆</span>
+      <div>
+        <h1>Waypoint</h1>
+        <p class="tagline">Degree-planning help for UTM students, with sources from the Academic Calendar.</p>
+      </div>
+    </div>
+    <div id="account"><div id="signin"></div><span id="who" hidden></span></div>
+  </header>
+
+  <main>
+    <section class="notice">
+      Waypoint covers the <strong>Mathematical Sciences</strong> programs and MAT courses for now.
+      Timetable answers use <strong>sample data</strong>, not real offerings. Always confirm plans with an
+      <a id="advisor-link" href="#" target="_blank" rel="noopener">academic advisor</a>.
+      Don't share personal information (student number, grades) in your questions.
+    </section>
+
+    <section id="log" aria-live="polite"></section>
+
+    <section id="examples">
+      <button class="example">What are the prerequisites for MAT224, and what does it unlock?</button>
+      <button class="example">How many credits does the Mathematics major require?</button>
+      <button class="example">Which MAT or STA courses this winter fit Tue/Thu afternoons?</button>
+    </section>
+
+    <form id="ask">
+      <textarea id="message" rows="2" maxlength="2000" placeholder="Sign in with Google to ask a question" disabled></textarea>
+      <button type="submit" id="send" disabled>Ask</button>
+    </form>
+  </main>
+
+  <footer>
+    Built on Google ADK, Vertex AI and Cloud Run. Answers can be wrong: check the cited calendar sections.
+    Waypoint never reads ACORN or transcripts.
+    <nav class="legal"><a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of use</a></nav>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+{
+  "summary": {
+    "questions": 6,
+    "correct": 6,
+    "p95_latency_s": 4.6,
+    "mean_cost_usd": 0.00295,
+    "source": "postgres"
+  },
+  "rows": [
+    {
+      "q": "Which national park had the most visitors in 2025-26, and how many?",
+      "correct": true,
+      "answer": "In the 2025-26 fiscal year, the national park with the most visitors was Banff National Park, with 4,558,171 visitors.\n\nSource: Parks Canada attendance, Open Government Licence \u2013 Canada.",
+      "model_calls": 2,
+      "input_tokens": 1603,
+      "output_tokens": 86,
+      "thinking_tokens": 0,
+      "cached_tokens": 0,
+      "cost_usd": 0.003178,
+      "tool_calls": 1,
+      "tool_errors": 0,
+      "agents": [
+        "parks_assistant"
+      ],
+      "retrieved_ids": 0,
+      "limit_hit": false,
+      "latency_ms": 4648.2,
+      "tokens_per_second": 18.5
+    },
+    {
+      "q": "How many people visited Jasper National Park in 2024-25?",
+      "correct": true,
+      "answer": "In the 2024-25 fiscal year, Jasper National Park had 1,142,080 visitors.\n\nSource: Parks Canada attendance, Open Government Licence \u2013 Canada.",
+      "model_calls": 2,
+      "input_tokens": 1771,
+      "output_tokens": 60,
+      "thinking_tokens": 0,
+      "cached_tokens": 0,
+      "cost_usd": 0.003197,
+      "tool_calls": 1,
+      "tool_errors": 0,
+      "agents": [
+        "parks_assistant"
+      ],
+      "retrieved_ids": 0,
+      "limit_hit": false,
+      "latency_ms": 1869.8,
+      "tokens_per_second": 32.09
+    },
+    {
+      "q": "What was total attendance across all Parks Canada places in 2024-25?",
+      "correct": true,
+      "answer": "In the 2024-25 fiscal year, the total attendance across all Parks Canada places was 23,225,829 visitors (with 119 places reporting and 5 places not reporting).\n\nSource: Parks Canada attendance, Open Government Licence \u2013 Canada.",
+      "model_calls": 2,
+      "input_tokens": 1549,
+      "output_tokens": 86,
+      "thinking_tokens": 0,
+      "cached_tokens": 0,
+      "cost_usd": 0.003097,
+      "tool_calls": 1,
+      "tool_errors": 0,
+      "agents": [
+        "parks_assistant"
+      ],
+      "retrieved_ids": 0,
+      "limit_hit": false,
+      "latency_ms": 2425.4,
+      "tokens_per_second": 35.46
+    },
+    {
+      "q": "How many visitors did Gros Morne National Park have in 2024-25?",
+      "correct": true,
+      "answer": "Gros Morne National Park was unable to report its attendance figures for the 2024-25 fiscal year.\n\nSource: Parks Canada attendance, Open Government Licence \u2013 Canada.",
+      "model_calls": 2,
+      "input_tokens": 1783,
+      "output_tokens": 60,
+      "thinking_tokens": 0,
+      "cached_tokens": 0,
+      "cost_usd": 0.003214,
+      "tool_calls": 1,
+      "tool_errors": 0,
+      "agents": [
+        "parks_assistant"
+      ],
+      "retrieved_ids": 0,
+      "limit_hit": false,
+      "latency_ms": 3308.4,
+      "tokens_per_second": 18.14
+    },
+    {
+      "q": "Did visits to Pacific Rim National Park Reserve go up or down from 2023-24 to 2024-25?",
+      "correct": true,
+      "answer": "Visits to Pacific Rim National Park Reserve went **up** from 2023-24 to 2024-25. \n\n* **2023-24:** 1,105,504 visitors\n* **2024-25:** 1,173,986 visitors\n\nSource: Parks Canada attendance, Open Government Licence \u2013 Canada.",
+      "model_calls": 2,
+      "input_tokens": 1813,
+      "output_tokens": 109,
+      "thinking_tokens": 0,
+      "cached_tokens": 0,
+      "cost_usd": 0.003701,
+      "tool_calls": 1,
+      "tool_errors": 0,
+      "agents": [
+        "parks_assistant"
+      ],
+      "retrieved_ids": 0,
+      "limit_hit": false,
+      "latency_ms": 2327.3,
+      "tokens_per_second": 46.84
+    },
+    {
+      "q": "What's the weather forecast in Banff this weekend?",
+      "correct": true,
+      "answer": "I can only answer questions about Parks Canada attendance. I cannot provide weather forecasts. \n\nSource: Parks Canada attendance, Open Government Licence \u2013 Canada.",
+      "model_calls": 1,
+      "input_tokens": 701,
+      "output_tokens": 30,
+      "thinking_tokens": 0,
+      "cached_tokens": 0,
+      "cost_usd": 0.001321,
+      "tool_calls": 0,
+      "tool_errors": 0,
+      "agents": [
+        "parks_assistant"
+      ],
+      "retrieved_ids": 0,
+      "limit_hit": false,
+      "latency_ms": 1045.0,
+      "tokens_per_second": 28.71
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+[project]
+name = "fde-kit"
+version = "0.1.0"
+description = "Small, tested building blocks for shipping Google ADK agents: request metrics and budgets, cost, MCP legacy adapters, ragaudit evals."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Ali Ekramy Ismail", email = "alii.ekramy.ismail@gmail.com" }]
+keywords = ["google-adk", "agents", "mcp", "opentelemetry", "llm", "evaluation", "rag"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "google-adk>=2.13",
+    "mcp>=2.3",
+    "opentelemetry-api>=1.39",
+]
+
+[project.optional-dependencies]
+ragaudit = ["ragaudit>=0.2"]
+
+[project.urls]
+Homepage = "https://github.com/Aliismail293/waypoint/tree/main/fde-kit"
+Repository = "https://github.com/Aliismail293/waypoint"
+Issues = "https://github.com/Aliismail293/waypoint/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "opentelemetry-sdk>=1.39",
+]
+
+# ragaudit isn't on PyPI yet, so this tells uv (and only uv) where to find it. Hatchling ignores this table,
+# so the published metadata just says `ragaudit>=0.2`.
+[tool.uv.sources]
+ragaudit = { git = "https://github.com/Aliismail293/rag-tester" }
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fde_kit"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/fde_kit", "tests", "README.md", "LICENSE", "pyproject.toml"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+
+# ragaudit is an optional extra, usually not installed when type-checking.
+[[tool.mypy.overrides]]
+module = ["ragaudit", "ragaudit.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# ADK's own AgentTool still passes `plugins=` to its child Runner; not something this kit can fix.
+filterwarnings = ["ignore:The `plugins` argument is deprecated:DeprecationWarning"]
