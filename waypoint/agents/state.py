@@ -3,14 +3,16 @@
 Only the orchestrator sees conversation history (each specialist starts fresh for every AgentTool call), so
 history is where tokens grow turn after turn: every earlier specialist answer is re-sent on every model call.
 
-1. PruneOldToolOutputs (plugin): in the orchestrator's request, specialist outputs from *earlier* turns are
-   replaced by a one-line stub. The orchestrator's own answer for that turn, which summarised them, stays.
-   The current turn is never touched.
-2. Running summary: ADK's events compaction. Every `compaction_interval` turns, older turns are summarised
-   into one event by a model call that runs after the answer has been sent. `MeteredLlm` records that
-   call's tokens, which the plugins never see, so the before/after cost is honest.
+1. PruneOldToolOutputs (plugin, off by default): in the orchestrator's request, specialist outputs from
+   *earlier* turns are replaced by a one-line stub, and the orchestrator's own answers stay. It cut the
+   orchestrator's context by about a third, but it rewrites history every turn, which breaks Gemini's
+   implicit prefix cache. In the measured conversations that cost more than it saved (see
+   docs/STATE_OPTIMISATION.md).
+2. Running summary: ADK's events compaction. Once the prompt passes a token threshold (or every N turns),
+   older turns are summarised into one event by a model call that runs after the answer has been sent.
+   `MeteredLlm` records that call's tokens, which the plugins never see, so before/after costs are honest.
 3. Prefix caching: Gemini caches repeated prompt prefixes implicitly (no resource to manage). Instructions
-   are static text with the date line last, and pruning keeps earlier history stable, so the prefix repeats.
+   are static text with the date line last, and history is append-only, so the prefix repeats.
    Explicit ADK context caching (`ContextCacheConfig`) creates a billed CachedContent resource and needs a
    4096-token prefix on Gemini 3, so it is off unless WAYPOINT_EXPLICIT_CACHE=true.
 """
@@ -99,19 +101,30 @@ class MeteredLlm(BaseLlm):
 
 
 def state_options(
-    model: BaseLlm, *, compaction_interval: int, overlap: int, explicit_cache: bool
+    model: BaseLlm,
+    *,
+    token_threshold: int,
+    keep_events: int,
+    compaction_interval: int,
+    overlap: int,
+    explicit_cache: bool,
 ) -> tuple[dict[str, object], MeteredLlm]:
-    """App(...) keyword arguments that turn on summary compaction (and optionally explicit caching)."""
+    """App(...) keyword arguments that turn on summary compaction (and optionally explicit caching).
+
+    By default compaction triggers on prompt size (token_threshold), so short conversations keep an
+    append-only history that Gemini's implicit cache can reuse. compaction_interval > 0 switches to
+    summarising every N turns."""
     from google.adk.agents.context_cache_config import ContextCacheConfig
     from google.adk.apps.app import EventsCompactionConfig
 
     metered = MeteredLlm(model=model.model, inner=model, usage=Usage())
+    trigger: dict[str, int] = (
+        {"compaction_interval": compaction_interval, "overlap_size": overlap}
+        if compaction_interval > 0
+        else {"token_threshold": token_threshold, "event_retention_size": keep_events}
+    )
     options: dict[str, object] = {
-        "events_compaction_config": EventsCompactionConfig(
-            summarizer=LlmEventSummarizer(llm=metered),
-            compaction_interval=compaction_interval,
-            overlap_size=overlap,
-        )
+        "events_compaction_config": EventsCompactionConfig(summarizer=LlmEventSummarizer(llm=metered), **trigger)
     }
     if explicit_cache:
         options["context_cache_config"] = ContextCacheConfig(min_tokens=4096, ttl_seconds=900, cache_intervals=10)

@@ -78,14 +78,12 @@ flowchart TD
 ## Conversation state
 
 Only the orchestrator sees conversation history, because each specialist starts fresh for every call.
-Three measures keep the history small:
-- Earlier turns' specialist outputs are pruned to a stub, while the orchestrator's own answers stay.
-- Every 3 turns, older turns are summarised by ADK events compaction. The summariser's tokens are metered,
-  because plugins don't see that call.
-- Prompts keep a static prefix so Gemini's implicit prefix cache can hit. Explicit `ContextCacheConfig` is
-  off by default: it creates a billed CachedContent resource and needs a 4096-token prefix on Gemini 3.
-
-The measured before/after is in `docs/STATE_OPTIMISATION.md`.
+History is append-only, so Gemini's implicit prefix cache can reuse it. Once the orchestrator's prompt
+passes 30k tokens, ADK events compaction summarises older turns. The summariser's tokens are metered,
+because plugins don't see that call. Pruning earlier specialist outputs is implemented but off: in a live
+before/after it cut the orchestrator's context by 34% but raised cost per conversation by 31%, because it
+broke the implicit cache (`docs/STATE_OPTIMISATION.md`). Explicit `ContextCacheConfig` is off: it creates a
+billed CachedContent resource and needs a 4096-token prefix on Gemini 3.
 
 ## Quality, safety and cost
 

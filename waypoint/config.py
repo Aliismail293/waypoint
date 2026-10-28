@@ -29,10 +29,15 @@ class Settings(BaseSettings):
     critic_model: str = "gemini-3.5-flash"
     critic: bool = True  # self-reflection on plans; off reproduces the Phase 1 planner for A/B runs
     critic_max_revisions: int = 2
-    # Conversation state (waypoint/agents/state.py). Off reproduces the unoptimised baseline for A/B runs.
+    # Conversation state (waypoint/agents/state.py, measured in docs/STATE_OPTIMISATION.md). Defaults follow the
+    # measurement: append-only history keeps Gemini's implicit prefix cache warm, so pruning is off and history is
+    # only summarised once the orchestrator's prompt passes compaction_token_threshold (long conversations).
     state_opt: bool = True
-    compaction_interval: int = 3  # summarise older turns every 3 turns...
-    compaction_overlap: int = 1  # ...keeping the latest turn verbatim alongside the summary
+    prune_tool_outputs: bool = False
+    compaction_token_threshold: int = 30000
+    compaction_keep_events: int = 10
+    compaction_interval: int = 0  # >0: summarise every N turns instead (sliding window), keeping `overlap` turns
+    compaction_overlap: int = 1
     explicit_cache: bool = False  # creates a billed CachedContent resource; see state.py
     embedding_model: str = "gemini-embedding-001"
     embedding_dim: int = 768

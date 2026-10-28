@@ -1,0 +1,200 @@
+{
+  "critic_off": {
+    "summary": {
+      "questions": 6,
+      "plan_validity": 0.333,
+      "mean_latency_s": 37.2,
+      "mean_model_calls": 10.8,
+      "mean_cost_usd": 0.0707
+    },
+    "rows": [
+      {
+        "id": "p1",
+        "critic": false,
+        "valid": false,
+        "errors": [
+          "2027 Winter: prerequisites for MAT344H5 not met before this term (missing: MAT223H5, MAT240H5). Requirement: MAT102H5 and (MAT223H5 or MAT240H5)"
+        ],
+        "plan": "2027 Winter: MAT223H5, MAT344H5; 2027 Fall: MAT224H5, MAT232H5; 2028 Winter: MAT301H5",
+        "critic_rounds": 0,
+        "latency_ms": 32972.1,
+        "model_calls": 9,
+        "cost_usd": 0.070407,
+        "limit_hit": false,
+        "answer": "Here is a draft term-by-term course plan to complete your Mathematics minor (ERMIN2511) starting in 2027 Winter, based on your completed courses (MAT102H5, MAT135H5, and MAT136H5) [cal:mathematical-sciences#ermin2511-completion]:\n\n- **2027 Winter**: MAT223H5, MAT344H5\n- **2027 Fall**: MAT224H5, MAT232H5\n- **2028 Winter**: MAT301H5\n\n### Requirement Coverage:\n* **MAT223H5** and **MAT232H5** satisfy the core second-year linear algebra and multivariable calculus requirements [cal:mathematical-sciences#ermin2511-completion].\n* **MAT224H5** satisfies the requirement for an additional 0.5 credit from the specified list of 200-level courses [cal:mathematical-sciences#ermin2511-completion].\n* **MAT344H5** and **MAT301H5** satisfy the requirement for 1.0 credit of 300/400-level MAT courses (excluding MAT397H5, MAT398H5, MAT492H5, MAT497H5, and MAT498H5) [cal:mathematical-sciences#ermin2511-completion].\n\n### Important Prerequisites to Keep in Mind:\n* **MAT224H5** requires a minimum grade of 60% in MAT223H5 (or MAT240H5).\n* **MAT232H5** requires a minimum grade of 60% in MAT136H5 (or MAT134H5/MAT137Y5/MAT159H5).\n* **MAT301H5** requires a minimum grade of 60% in MAT102H5.\n\n*Note: This plan is a draft. Please confirm your course selections and academic progress with an academic advisor before enrolling.*"
+      },
+      {
+        "id": "p2",
+        "critic": false,
+        "valid": true,
+        "errors": [],
+        "plan": "2027 Winter: MAT202H5, MAT224H5, MAT232H5, MAT244H5; 2027 Fall: MAT236H5, MAT301H5, MAT334H5; 2028 Winter: MAT302H5, MAT311H5, MAT315H5, MAT402H5; 2028 Fall: MAT405H5",
+        "critic_rounds": 0,
+        "latency_ms": 73453.4,
+        "model_calls": 15,
+        "cost_usd": 0.116427,
+        "limit_hit": false,
+        "answer": "Here is a drafted 4-term course plan starting in 2027 Winter to complete the Mathematics Major (Mathematics Stream, ERMAJ2511) [cal:mathematical-sciences#ermaj2511-completion-p1]. \n\n### Term-by-Term Plan\n- **2027 Winter**: MAT202H5, MAT224H5, MAT232H5, MAT244H5\n- **2027 Fall**: MAT236H5, MAT301H5, MAT334H5\n- **2028 Winter**: MAT302H5, MAT311H5, MAT315H5, MAT402H5\n- **2028 Fall**: MAT405H5\n\n### Requirement Tracking\n* **MAT224H5**: Completed in 2027 Winter [cal:mathematical-sciences#mat224h5].\n* **MAT232H5**: Completed in 2027 Winter [cal:mathematical-sciences#mat232h5].\n* **MAT236H5**: Completed in 2027 Fall (Prerequisite: MAT232H5) [cal:mathematical-sciences#mat236h5].\n* **MAT202H5 & MAT244H5**: Both completed in 2027 Winter [cal:mathematical-sciences#mat202h5][cal:mathematical-sciences#mat244h5].\n* **MAT301H5**: Completed in 2027 Fall (Prerequisites: MAT202H5, MAT224H5) [cal:mathematical-sciences#mat301h5].\n* **MAT334H5 & MAT311H5**: Completed in 2027 Fall and 2028 Winter respectively, satisfying the 300-level analysis/differential equations requirement [cal:mathematical-sciences#mat334h5][cal:mathematical-sciences#mat311h5].\n* **Upper-Level Electives (2.0 credits)**:\n  * **MAT302H5** (0.5 credit, 2028 Winter) [cal:mathematical-sciences#mat302h5]\n  * **MAT315H5** (0.5 credit, 2028 Winter) [cal:mathematical-sciences#mat315h5]\n  * **MAT402H5** (0.5 credit, 400-level, 2028 Winter) [cal:mathematical-sciences#mat402h5]\n  * **MAT405H5** (0.5 credit, 400-level, 2028 Fall) [cal:mathematical-sciences#mat405h5]\n\n### Important Prerequisite Notes to Keep in Mind\n* **MAT244H5**: Ensure you have achieved the minimum grade requirements in your 100-level calculus courses (MAT135H5/MAT136H5) [cal:mathematical-sciences#mat244h5].\n* **MAT334H5**: Requires a mark of at least 60% in MAT202H5 or MAT224H5 to satisfy the prerequisite [cal:mathematical-sciences#mat334h5].\n* **MAT402H5**: Requires 0.5 credit of MAT at the 300+ level, which is satisfied by taking MAT301H5 or MAT334H5 in 2027 Fall [cal:mathematical-sciences#mat402h5].\n* **MAT405H5**: Requires at least 0.5 credit of MAT at the 300+ level with a mark of at least 65% (satisfied by your 2027 Fall or 2028 Winter 300-level courses) [cal:mathematical-sciences#mat405h5].\n\n*Note: This is a draft plan. Please confirm your course selections, prerequisite grades, and overall degree requirements with an academic advisor before enrolling.*"
+      },
+      {
+        "id": "p3",
+        "critic": false,
+        "valid": false,
+        "errors": [
+          "2027 Winter: STA256H5 is not in Waypoint's calendar data (check the code).",
+          "2027 Winter: ISP100H5 is not in Waypoint's calendar data (check the code).",
+          "2027 Fall: STA260H5 is not in Waypoint's calendar data (check the code)."
+        ],
+        "plan": "2027 Winter: MAT232H5, MAT244H5, STA256H5, ISP100H5; 2027 Fall: MAT236H5, MAT264H5, STA260H5; 2028 Winter: MAT311H5, MAT332H5, MAT334H5",
+        "critic_rounds": 0,
+        "latency_ms": 32547.4,
+        "model_calls": 11,
+        "cost_usd": 0.081229,
+        "limit_hit": false,
+        "answer": "Here is a draft term-by-term course plan for your Applied Mathematics major (ERMAJ2512) [cal:mathematical-sciences#ermaj2512-completion] from 2027 Winter through 2028 Winter:\n\n- **2027 Winter**: MAT232H5, MAT244H5, STA256H5, ISP100H5\n- **2027 Fall**: MAT236H5, MAT264H5, STA260H5\n- **2028 Winter**: MAT311H5, MAT332H5, MAT334H5\n\n### Requirement Tracking\n* **MAT232H5** & **MAT236H5**: Satisfies the second-year multivariable calculus requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT244H5**: Satisfies the second-year differential equations requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT264H5**: Satisfies the second-year numerical analysis requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **STA256H5** & **STA260H5**: Satisfies the second-year statistics requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **ISP100H5**: Satisfies the first-year writing requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT311H5**: Satisfies the higher-years partial differential equations requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT332H5**: Satisfies the higher-years nonlinear dynamics/modelling requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT334H5**: Satisfies the higher-years complex variables requirement [cal:mathematical-sciences#ermaj2512-completion].\n\n### Important Notes & Warnings\n* **Prerequisite Confirmation**: Please manually confirm you meet the prerequisites for **MAT244H5** [cal:mathematical-sciences#mat244h5] and **MAT334H5** (which typically requires MAT202H5 or an additional 300+ level MAT credit if not taking MAT257Y5) [cal:mathematical-sciences#mat402h5].\n* **Database Limitations**: ISP100H5, STA256H5, and STA260H5 are required program courses but were not fully validated by the automated system as they are outside the core mathematics course database.\n\n*Note: This plan is a draft. Please confirm all course selections, prerequisites, and program requirements with an academic advisor before enrolling.*"
+      },
+      {
+        "id": "p4",
+        "critic": false,
+        "valid": true,
+        "errors": [],
+        "plan": "2027 Winter: MAT224H5; 2027 Fall: MAT301H5; 2028 Winter: MAT302H5",
+        "critic_rounds": 0,
+        "latency_ms": 39856.8,
+        "model_calls": 16,
+        "cost_usd": 0.07723,
+        "limit_hit": false,
+        "answer": "To complete your Mathematics minor (ERMIN2511) and take MAT301H5 as soon as possible, you must first complete a prerequisite course that satisfies both the minor's second-year requirements and the prerequisite for MAT301H5 [cal:mathematical-sciences#ermin2511-completion][cal:mathematical-sciences#mat301h5]. \n\nThe prerequisites for **MAT301H5** are MAT102H5 and one of MAT202H5, MAT224H5, or MAT240H5 [cal:mathematical-sciences#mat301h5]. Taking MAT224H5 (or MAT202H5) in your first term will unlock MAT301H5 and satisfy your second-year minor requirement [cal:mathematical-sciences#ermin2511-completion][cal:mathematical-sciences#mat301h5].\n\nHere is your draft 3-term course plan:\n\n- **2027 Winter**: MAT224H5\n- **2027 Fall**: MAT301H5\n- **2028 Winter**: MAT302H5\n\n### Requirement Tracking\n* **MAT224H5**: Satisfies the second-year minor requirement of choosing one of (MAT202H5, MAT224H5, MAT236H5, etc.) [cal:mathematical-sciences#ermin2511-completion] and serves as a prerequisite for MAT301H5 [cal:mathematical-sciences#mat301h5].\n* **MAT301H5**: Satisfies 0.5 credit of the higher-year minor requirement (1.0 credit of 300/400-level MAT courses) [cal:mathematical-sciences#ermin2511-completion] and serves as a prerequisite for MAT302H5 [cal:mathematical-sciences#mat302h5].\n* **MAT302H5**: Satisfies the remaining 0.5 credit of the higher-year minor requirement (1.0 credit of 300/400-level MAT courses) [cal:mathematical-sciences#ermin2511-completion]. *(Note: You could also choose another 300-level course unlocked by MAT301H5, such as MAT315H5 [cal:mathematical-sciences#mat315h5]).*\n\n*Note: This plan is a draft. Please confirm your course selections and program requirements with an academic advisor before enrolling.*"
+      },
+      {
+        "id": "p5",
+        "critic": false,
+        "valid": false,
+        "errors": [
+          "2026 Fall: ISP100H5 is not in Waypoint's calendar data (check the code)."
+        ],
+        "plan": "2026 Fall: MAT102H5, MAT135H5, ISP100H5; 2027 Winter: MAT136H5, MAT223H5",
+        "critic_rounds": 0,
+        "latency_ms": 27207.0,
+        "model_calls": 11,
+        "cost_usd": 0.043917,
+        "limit_hit": false,
+        "answer": "Based on the UTM Academic Calendar requirements for entering the Mathematics Major (ERMAJ2511) in the 2026\u20132027 academic year [cal:mathematical-sciences#ermaj2511-completion-p1], here is a recommended draft plan for your first year. \n\nPlease note that this is a draft plan; you should always confirm your course selections with an academic advisor before enrolling.\n\n### Recommended First-Year Course Plan\n\n*   **2026 Fall**\n    *   **MAT102H5** (Introduction to Mathematical Proofs) \u2014 *Prerequisite: 70% in Grade 12 Advanced Functions* [cal:mathematical-sciences#mat102h5]\n    *   **MAT135H5** (Differential Calculus) \u2014 *Prerequisite: 70% in Grade 12 Advanced Functions* [cal:mathematical-sciences#mat135h5]\n    *   **ISP100H5** (Writing for University and Beyond) [cal:mathematical-sciences#ermaj2511-completion-p1]\n    *   *2 elective courses of your choice* (to reach a standard 5-course load)\n\n*   **2027 Winter**\n    *   **MAT136H5** (Integral Calculus) \u2014 *Prerequisite: MAT135H5* [cal:mathematical-sciences#mat136h5]\n    *   **MAT223H5** (Linear Algebra I) \u2014 *Prerequisite: Grade 12 Advanced Functions and Calculus & Vectors, or MAT102H5* [cal:mathematical-sciences#mat223h5]\n    *   *3 elective courses of your choice* (to reach a standard 5-course load)\n\n### Key Program Requirements Addressed:\n*   **MAT102H5** [cal:mathematical-sciences#ermaj2511-completion-p1]\n*   **ISP100H5** [cal:mathematical-sciences#ermaj2511-completion-p1]\n*   **Calculus Sequence**: MAT135H5 and MAT136H5 satisfy the first-year calculus requirement [cal:mathematical-sciences#ermaj2511-completion-p1].\n*   **Linear Algebra**: MAT223H5 satisfies the first-year algebra requirement [cal:mathematical-sciences#ermaj2511-completion-p1]."
+      },
+      {
+        "id": "p6",
+        "critic": false,
+        "valid": false,
+        "errors": [
+          "2027 Winter: CSC108H5 is not in Waypoint's calendar data (check the code).",
+          "2027 Winter: MAT211H5 is not in Waypoint's calendar data (check the code).",
+          "2027 Fall: CSC148H5 is not in Waypoint's calendar data (check the code).",
+          "2027 Fall: STA257H5 is not in Waypoint's calendar data (check the code)."
+        ],
+        "plan": "2027 Winter: CSC108H5, MAT211H5; 2027 Fall: CSC148H5, STA257H5",
+        "critic_rounds": 0,
+        "latency_ms": 17147.9,
+        "model_calls": 3,
+        "cost_usd": 0.03519,
+        "limit_hit": false,
+        "answer": "Here is a draft course plan for your second year (2027 Winter and 2027 Fall), taking a maximum of 2 courses per term toward the Mathematical Sciences Specialist program:\n\n- **2027 Winter**: CSC108H5, MAT211H5\n- **2027 Fall**: CSC148H5, STA257H5\n\n### Requirement Satisfaction\n* **CSC108H5**: Satisfies part of the First Year computer science requirement (Requirement 2).\n* **MAT211H5**: Satisfies part of the Second Year mathematics requirement (Requirement 3).\n* **CSC148H5**: Satisfies the remaining part of the First Year computer science requirement (Requirement 2).\n* **STA257H5**: Satisfies the Second Year statistics requirement (Requirement 3).\n\n### Important Prerequisites & Warnings\n* **CSC148H5**: A minimum grade of 60% in CSC108H5 is required to take CSC148H5.\n\n*Please note: This is a draft plan. You should always confirm your course selections and program requirements with an academic advisor before enrolling.*"
+      }
+    ]
+  },
+  "critic_on": {
+    "summary": {
+      "questions": 6,
+      "plan_validity": 0.667,
+      "mean_latency_s": 54.7,
+      "mean_model_calls": 15.7,
+      "mean_cost_usd": 0.1017
+    },
+    "rows": [
+      {
+        "id": "p1",
+        "critic": true,
+        "valid": true,
+        "errors": [],
+        "plan": "2027 Winter: MAT223H5, MAT232H5; 2027 Fall: MAT224H5, MAT344H5; 2028 Winter: MAT301H5; 2028 Fall: MAT302H5",
+        "critic_rounds": 1,
+        "latency_ms": 79204.3,
+        "model_calls": 22,
+        "cost_usd": 0.100253,
+        "limit_hit": false,
+        "answer": "Here is a term-by-term course plan to complete the Mathematical Sciences Minor (ERMIN2511) starting in 2027 Winter, based on your completed courses (MAT102H5, MAT135H5, and MAT136H5) [cal:mathematical-sciences#ermin2511-completion]:\n\n- **2027 Winter**: MAT223H5, MAT232H5\n- **2027 Fall**: MAT224H5, MAT344H5\n- **2028 Winter**: MAT301H5\n- **2028 Fall**: MAT302H5\n\n### Requirement Satisfaction:\n* **MAT223H5**: Satisfies the first part of the Second Year requirement (MAT223H5 or MAT240H5) [cal:mathematical-sciences#ermin2511-completion].\n* **MAT232H5**: Satisfies the second-year calculus requirement [cal:mathematical-sciences#ermin2511-completion].\n* **MAT224H5**: Satisfies the second-year option requirement (one of MAT202H5/MAT224H5/MAT236H5/MAT244H5) [cal:mathematical-sciences#ermin2511-completion].\n* **MAT344H5 & MAT301H5**: Satisfy the 1.0 credit requirement of 300/400-level MAT courses [cal:mathematical-sciences#ermin2511-completion].\n* **MAT302H5**: Taken as an elective to complete the algebraic sequence following MAT301H5.\n\n### Validation Warnings:\n* **MAT223H5**: Please confirm you meet the high school prerequisite yourself: Grade 12 Advanced Functions (MHF4U) and Grade 12 Calculus and Vectors (MCV4U or MAT102H5).\n\n*Note: This is a draft plan. Please confirm your course selections and program requirements with an academic advisor before registering.*"
+      },
+      {
+        "id": "p2",
+        "critic": true,
+        "valid": true,
+        "errors": [],
+        "plan": "2027 Winter: MAT202H5, MAT224H5, MAT232H5, MAT244H5; 2027 Fall: MAT236H5, MAT301H5, MAT334H5, MAT345H5; 2028 Winter: MAT302H5, MAT305H5, MAT337H5; 2028 Fall: MAT401H5, MAT405H5",
+        "critic_rounds": 1,
+        "latency_ms": 45758.3,
+        "model_calls": 19,
+        "cost_usd": 0.098512,
+        "limit_hit": false,
+        "answer": "Here is a draft term-by-term course plan to complete the Mathematics Major (Mathematics stream) over your next four terms starting in 2027 Winter:\n\n- **2027 Winter**: MAT202H5, MAT224H5, MAT232H5, MAT244H5\n- **2027 Fall**: MAT236H5, MAT301H5, MAT334H5, MAT345H5\n- **2028 Winter**: MAT302H5, MAT305H5, MAT337H5\n- **2028 Fall**: MAT401H5, MAT405H5\n\n### Requirements Satisfied:\n* **MAT202H5 & MAT244H5**: Satisfies the Second Year requirement of MAT202H5 and MAT244H5 [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **MAT224H5**: Satisfies the Second Year requirement of MAT224H5 or MAT247H5 [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **MAT232H5 & MAT236H5**: Satisfies the Second Year requirement of (MAT232H5 and MAT236H5) [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **MAT301H5 & MAT334H5**: Satisfies the Higher Years requirement of MAT301H5 and (MAT334H5 or MAT354H5) [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **MAT337H5 & MAT405H5**: Satisfies the Higher Years requirement of MAT337H5 or MAT392H5 or MAT405H5 [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **MAT305H5**: Satisfies the Higher Years requirement of MAT305H5 or MAT311H5 or MAT332H5 [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **MAT345H5**: Satisfies the Higher Years requirement of MAT302H5 or MAT315H5 or MAT345H5 [cal:mathematical-sciences#ermaj2511-completion-p2].\n* **MAT302H5**: Satisfies the Higher Years requirement of 0.5 credit of MAT at the 300/400 level (except MAT344H5) [cal:mathematical-sciences#ermaj2511-completion-p2].\n* **MAT401H5**: Satisfies the Higher Years requirement of 0.5 additional credits in MAT at the 400 level [cal:mathematical-sciences#ermaj2511-completion-p1].\n\n### Important Warnings & Notes:\n1. **ISP100H5**: This is a required first-year course for program completion [cal:mathematical-sciences#ermaj2511-completion-p1]. If you have not already completed it, you must add it to your schedule.\n2. **Prerequisite Confirmations**:\n   * **MAT244H5**: Confirm you have completed the prerequisite of MAT136H5 and MAT223H5 [cal:mathematical-sciences#mat244h5].\n   * **MAT334H5**: Confirm you meet the prerequisite of having MAT232H5 and MAT202H5 [cal:mathematical-sciences#mat334h5].\n   * **MAT405H5**: Confirm you meet the prerequisite of having MAT224H5, MAT236H5, and at least 0.5 additional credit of MAT at the 300+ level with a mark of at least 65% [cal:mathematical-sciences#mat405h5].\n\n*Note: This plan is a draft. Please confirm your course selections and program requirements with an academic advisor before enrolling.*"
+      },
+      {
+        "id": "p3",
+        "critic": true,
+        "valid": false,
+        "errors": [
+          "2027 Winter: STA256H5 is not in Waypoint's calendar data (check the code).",
+          "2027 Winter: ISP100H5 is not in Waypoint's calendar data (check the code).",
+          "2027 Fall: STA260H5 is not in Waypoint's calendar data (check the code)."
+        ],
+        "plan": "2027 Winter: MAT232H5, MAT244H5, STA256H5, ISP100H5; 2027 Fall: MAT236H5, MAT264H5, MAT334H5, STA260H5; 2028 Winter: MAT311H5, MAT332H5, MAT386H5",
+        "critic_rounds": 3,
+        "latency_ms": 53708.5,
+        "model_calls": 18,
+        "cost_usd": 0.14434,
+        "limit_hit": false,
+        "answer": "Here is a draft course plan for your Applied Mathematics major from 2027 Winter through 2028 Winter, based on your completed courses (MAT102H5, MAT137H5, MAT139H5, MAT223H5, MAT224H5):\n\n- **2027 Winter**: MAT232H5, MAT244H5, STA256H5, ISP100H5\n- **2027 Fall**: MAT236H5, MAT264H5, MAT334H5, STA260H5\n- **2028 Winter**: MAT311H5, MAT332H5, MAT386H5\n\n### Requirement Satisfaction\n* **ISP100H5**: Satisfies the first-year writing requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **STA256H5** & **STA260H5**: Satisfies the second-year statistics requirements [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT232H5** & **MAT236H5**: Satisfies the multivariable calculus requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT244H5**: Satisfies the second-year differential equations requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT264H5**: Satisfies the second-year numerical analysis requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT311H5**: Satisfies the higher-year PDE requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT332H5**: Satisfies the MAT322H5 or MAT332H5 requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT334H5**: Satisfies the MAT334H5 or MAT354H5 requirement [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT386H5**: Satisfies 0.5 credits of the higher-year applied math options [cal:mathematical-sciences#ermaj2512-completion].\n\n### Important Notes & Prerequisites\n* **STA256H5, STA260H5, and ISP100H5**: These courses are scheduled to fulfill your program requirements, but they are not fully validated in the database [cal:mathematical-sciences#ermaj2512-completion].\n* **MAT244H5**: Requires MAT137H5/MAT139H5 and MAT223H5 [cal:mathematical-sciences#mat244h5].\n* **MAT334H5**: Requires MAT232H5 and an additional 0.5 MAT credit at the 300+ level (or MAT202H5/MAT240H5) [cal:mathematical-sciences#mat334h5].\n* **MAT386H5**: Specific prerequisites depend on the topic offered; check the UTM timetable prior to registration [cal:mathematical-sciences#mat386h5].\n\n*Please note: This is a draft plan. You must confirm your course selections and program requirements with an academic advisor before enrolling.*"
+      },
+      {
+        "id": "p4",
+        "critic": true,
+        "valid": true,
+        "errors": [],
+        "plan": "2027 Winter: MAT224H5; 2027 Fall: MAT301H5; 2028 Winter: MAT344H5",
+        "critic_rounds": 0,
+        "latency_ms": 23391.2,
+        "model_calls": 13,
+        "cost_usd": 0.053698,
+        "limit_hit": false,
+        "answer": "To take **MAT301H5** as soon as possible, you must first complete one of its prerequisites: **MAT202H5**, **MAT224H5**, or **MAT240H5** [cal:mathematical-sciences#mat301h5]. Since you have already completed MAT102H5 and MAT223H5, you are eligible to take **MAT224H5** or **MAT202H5** immediately [cal:mathematical-sciences#mat202h5][cal:mathematical-sciences#mat224h5]. \n\nCompleting one of these courses will also satisfy the second-year elective requirement for your Mathematics minor [cal:mathematical-sciences#ermin2511-completion].\n\nHere is a draft plan for your next three terms to complete your minor requirements and take MAT301H5 as early as possible. Please confirm this plan with an academic advisor before enrolling.\n\n* **2027 Winter**: MAT224H5 *(Prerequisite for MAT301H5 [cal:mathematical-sciences#mat301h5] and satisfies a second-year minor requirement [cal:mathematical-sciences#ermin2511-completion])*\n* **2027 Fall**: MAT301H5 *(First 300-level minor requirement [cal:mathematical-sciences#ermin2511-completion])*\n* **2028 Winter**: MAT344H5 *(or any other 300/400-level MAT course to complete the 1.0 credit higher-years requirement [cal:mathematical-sciences#ermin2511-completion])*"
+      },
+      {
+        "id": "p5",
+        "critic": true,
+        "valid": true,
+        "errors": [],
+        "plan": "2026 Fall: MAT102H5, MAT137H5, MAT223H5; 2027 Winter: MAT139H5, MAT224H5",
+        "critic_rounds": 2,
+        "latency_ms": 43386.3,
+        "model_calls": 11,
+        "cost_usd": 0.064995,
+        "limit_hit": false,
+        "answer": "Here is a recommended first-year course plan for the Mathematics Major starting in 2026 Fall:\n\n- **2026 Fall**: MAT102H5, MAT137H5, MAT223H5\n- **2027 Winter**: MAT139H5, MAT224H5\n\n### Requirements Satisfied:\n* **MAT102H5** (Introduction to Mathematical Proofs): First-year program requirement [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **MAT137H5** & **MAT139H5** (Differential & Integral Calculus for Mathematical Sciences): Recommended calculus sequence satisfying the first-year calculus requirement [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **MAT223H5** & **MAT224H5** (Linear Algebra I & II): Satisfies the linear algebra requirement [cal:mathematical-sciences#ermaj2511-completion-p1].\n* **ISP100H5** (Writing for University and Beyond): This is a required first-year course for the major [cal:mathematical-sciences#ermaj2511-completion-p1]. It is not included in the schedule above, but you should enroll in it during either the Fall or Winter term.\n\n### Prerequisites to Confirm:\n* **MAT102H5**: Confirm you have a minimum of 70% in Grade 12 Advanced Functions (MHF4U) [cal:mathematical-sciences#mat102h5].\n* **MAT137H5**: Confirm you have a minimum of 70% in Grade 12 Advanced Functions (MHF4U) and a minimum of 70% in Grade 12 Calculus and Vectors (MCV4U) [cal:mathematical-sciences#mat137h5].\n* **MAT223H5**: Confirm you have Grade 12 Advanced Functions (MHF4U) and Grade 12 Calculus and Vectors (MCV4U or MAT102H5) [cal:mathematical-sciences#mat223h5].\n\n*Note: This plan is a draft. Please confirm your course selections and program enrollment requirements with an academic advisor before enrolling.*"
+      },
+      {
+        "id": "p6",
+        "critic": true,
+        "valid": false,
+        "errors": [
+          "2027 Winter: MAT267H5 is not in Waypoint's calendar data (check the code).",
+          "2027 Winter: STA256H5 is not in Waypoint's calendar data (check the code)."
+        ],
+        "plan": "2027 Winter: MAT267H5, STA256H5; 2027 Fall: MAT257Y5, MAT301H5",
+        "critic_rounds": 3,
+        "latency_ms": 82663.0,
+        "model_calls": 11,
+        "cost_usd": 0.148197,
+        "limit_hit": false,
+        "answer": "Here is a draft course plan for your second year (2027 Winter and 2027 Fall) toward the Mathematical Sciences Specialist program, based on your completed courses (MAT102H5, MAT157H5, MAT159H5, MAT240H5, and MAT247H5):\n\n- **2027 Winter**: MAT267H5, STA256H5\n- **2027 Fall**: MAT257Y5, MAT301H5\n\n### Requirement Satisfaction\n* **MAT267H5** (Advanced Ordinary Differential Equations): Satisfies a second-year requirement for the Mathematical Sciences Specialist program .\n* **STA256H5** (Probability and Statistics I): Satisfies the core probability/statistics requirement for the program .\n* **MAT257Y5** (Analysis II): Satisfies the core second-year analysis requirement for the Specialist program [cal:mathematical-sciences#mat257y5].\n* **MAT301H5** (Groups and Symmetry): Satisfies an upper-year algebra/pure mathematics requirement for the program [cal:mathematical-sciences#mat301h5].\n\n### Validation & Warnings\n* **Prerequisites**: All prerequisites for these courses are fully met by your completed courses.\n* **Course Load**: This plan strictly adheres to your limit of a maximum of 2 courses per term.\n* **Note on Y Courses**: MAT257Y5 is a full-year course that begins in the Fall. It will continue into the Winter 2028 term.\n\n*Please note: This is a draft plan. You should always confirm your course selections and program requirements with an academic advisor before enrolling.*"
+      }
+    ]
+  }
+}

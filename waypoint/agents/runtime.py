@@ -288,9 +288,12 @@ class WaypointRuntime:
         options: dict[str, Any] = {}
         self.summarizer: MeteredLlm | None = None
         if self.settings.state_opt:
-            all_plugins.append(PruneOldToolOutputs(agent.name))
+            if self.settings.prune_tool_outputs:
+                all_plugins.append(PruneOldToolOutputs(agent.name))
             options, self.summarizer = state_options(
                 agent_model(self.settings),
+                token_threshold=self.settings.compaction_token_threshold,
+                keep_events=self.settings.compaction_keep_events,
                 compaction_interval=self.settings.compaction_interval,
                 overlap=self.settings.compaction_overlap,
                 explicit_cache=self.settings.explicit_cache,
