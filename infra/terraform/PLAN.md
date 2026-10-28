@@ -93,3 +93,6 @@ All 7 imported resources import with **no attribute changes** on the first plan,
 - `billing_account` no longer has a default (the id stays out of the repo). Set it in a git-ignored
   `terraform.tfvars`; when it is empty the budget is skipped, so a plan without tfvars shows 17 to add.
   The 18-to-add figure above was planned with the billing account set.
+- Added `monitoring.tf` (6 log-based distribution metrics + the request dashboard). `terraform plan` without a
+  `terraform.tfvars` now reports: **Plan: 7 to import, 24 to add, 0 to change, 0 to destroy** (17 resources above
+  minus the budget, plus 7 for monitoring). Still never applied.
