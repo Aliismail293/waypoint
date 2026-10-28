@@ -1,0 +1,36 @@
+[project]
+name = "parks-demo"
+version = "0.1.0"
+description = "DEMO deployment of fde-kit: a Parks Canada visitation assistant on public open data."
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fde-kit",
+    "google-adk>=2.13",
+    "google-auth>=2.40",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic-settings>=2.6",
+    "psycopg[binary]>=3.2",
+    "requests>=2.32",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "httpx>=0.28",
+]
+
+[tool.uv.sources]
+fde-kit = { path = "../fde-kit" }
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["ignore:The `plugins` argument is deprecated:DeprecationWarning"]

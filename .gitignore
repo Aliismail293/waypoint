@@ -21,3 +21,4 @@ evals/results/ci_*
 evals/results/safety_offline.json
 fde-kit/dist/
 fde-kit/.venv/
+fdekit-demo/.venv/
