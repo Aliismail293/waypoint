@@ -8,6 +8,7 @@ from google.adk.models.base_llm import BaseLlm
 from google.adk.models.google_llm import Gemini
 from google.adk.models.llm_request import LlmRequest
 from google.adk.models.llm_response import LlmResponse
+from google.genai import types
 
 from waypoint.config import Settings, get_settings
 from waypoint.llm.mock import MockLlm
@@ -52,4 +53,6 @@ def agent_model(settings: Settings | None = None, *, name: str | None = None) ->
     os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "true")
     os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.gcp_project)
     os.environ.setdefault("GOOGLE_CLOUD_LOCATION", settings.model_location)
-    return RetryingGemini(model=name or settings.agent_model)
+    # 429s on the shared global endpoint come in short bursts; back off and retry instead of failing the request.
+    retry = types.HttpRetryOptions(attempts=4, initial_delay=2, max_delay=20, http_status_codes=[429, 503])
+    return RetryingGemini(model=name or settings.agent_model, retry_options=retry)

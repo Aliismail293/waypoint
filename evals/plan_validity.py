@@ -25,16 +25,26 @@ TERM = re.compile(r"\b(20\d\d)\s+(Fall|Winter|Summer)\b", re.IGNORECASE)
 
 
 def extract_plan(answer: str) -> str:
-    """Plan lines as 'Term: CODE, CODE; ...'. Only codes on the same line as a term heading count."""
-    terms = []
+    """The plan in the answer as 'Term: CODE, CODE; ...'.
+
+    Accepts one line per term ("- **2026 Fall**: MAT224H5, STA256H5") or a term line followed by indented
+    bullets, one course each. Text in parentheses is ignored, so "(needs MAT224H5)" isn't read as planned.
+    """
+    terms: list[tuple[str, list[str]]] = []
+    current: list[str] | None = None
     for line in answer.splitlines():
-        term = TERM.search(line)
-        if not term or ":" not in line[term.end() :]:
+        if not line.strip():
             continue
-        codes = COURSE_CODE.findall(line[term.end() :].split("(")[0])
-        if codes:
-            terms.append(f"{term.group(1)} {term.group(2).title()}: {', '.join(dict.fromkeys(codes))}")
-    return "; ".join(terms)
+        term = TERM.search(line)
+        if term and len(line[: term.start()].strip(" -*#")) == 0:
+            current = []
+            terms.append((f"{term.group(1)} {term.group(2).title()}", current))
+            current += COURSE_CODE.findall(line[term.end() :].split("(")[0])
+        elif current is not None and re.match(r"^\s+[-*+]\s", line):
+            current += COURSE_CODE.findall(line.split("(")[0])
+        else:
+            current = None
+    return "; ".join(f"{t}: {', '.join(dict.fromkeys(codes))}" for t, codes in terms if codes)
 
 
 async def run_variant(critic: bool, questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -58,9 +68,10 @@ async def run_variant(critic: bool, questions: list[dict[str, Any]]) -> list[dic
                 "model_calls": m["model_calls"],
                 "cost_usd": m["cost_usd"],
                 "limit_hit": m["limit_hit"],
+                "answer": answer.text,
             }
         )
-        print(json.dumps(rows[-1]), flush=True)
+        print(json.dumps({k: v for k, v in rows[-1].items() if k != "answer"}), flush=True)
     return rows
 
 
@@ -79,8 +90,11 @@ async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", default="critic_ab")
     parser.add_argument("--only", choices=["off", "on"])
+    parser.add_argument("--ids", help="comma-separated question ids (default: all)")
     args = parser.parse_args()
     questions = [json.loads(line) for line in (HERE / "planning_questions.jsonl").read_text().splitlines() if line]
+    if args.ids:
+        questions = [q for q in questions if q["id"] in args.ids.split(",")]
     result: dict[str, Any] = {}
     for label, critic in (("off", False), ("on", True)):
         if args.only and args.only != label:
@@ -88,6 +102,7 @@ async def main() -> None:
         rows = await run_variant(critic, questions)
         result[f"critic_{label}"] = {"summary": summarise(rows), "rows": rows}
     out = HERE / "results" / f"{args.name}.json"
+    out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps(result, indent=2))
     print(json.dumps({k: v["summary"] for k, v in result.items()}, indent=2))
 

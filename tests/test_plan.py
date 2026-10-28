@@ -50,3 +50,14 @@ def test_extract_plan_from_answer():
         "MAT301H5 requires MAT102H5 [cal:mathematical-sciences#mat301h5]."
     )
     assert extract_plan(answer) == "2026 Fall: MAT224H5, MAT232H5; 2027 Winter: MAT301H5"
+
+
+def test_extract_plan_from_nested_bullets():
+    from evals.plan_validity import extract_plan
+
+    answer = (
+        "Plan for 2027 Winter onward:\n\n*   **2027 Winter**:\n    *   **MAT232H5** (Multivariable Calculus) [x]\n"
+        "    *   **MAT244H5** (ODEs)\n*   **2027 Fall**:\n    *   **MAT236H5**\n\n---\n"
+        "*   **MAT264H5**: requires MAT244H5\n"
+    )
+    assert extract_plan(answer) == "2027 Winter: MAT232H5, MAT244H5; 2027 Fall: MAT236H5"
