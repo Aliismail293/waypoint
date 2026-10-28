@@ -8,6 +8,9 @@ SERVICE=${SERVICE:-waypoint}
 SQL_INSTANCE="$P:$REGION:waypoint-db"
 CLIENT_ID=${GOOGLE_CLIENT_ID:-48349810745-snc3au6tu4hfgqv8srrqlq0b766lh46h.apps.googleusercontent.com}
 
+cd "$(dirname "$0")/.."
+bash infra/check_deploy_iam.sh "$P"
+
 gcloud run deploy "$SERVICE" \
   --project "$P" --region "$REGION" --source . \
   --service-account "waypoint-run@$P.iam.gserviceaccount.com" \

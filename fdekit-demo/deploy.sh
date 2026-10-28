@@ -7,11 +7,14 @@ REGION=${REGION:-us-central1}
 INSTANCE="$PROJECT:$REGION:waypoint-db"
 CLIENT_ID=${CLIENT_ID:-48349810745-snc3au6tu4hfgqv8srrqlq0b766lh46h.apps.googleusercontent.com}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+bash "$ROOT/infra/check_deploy_iam.sh" "$PROJECT"
 
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
-rsync -a --exclude .venv --exclude dist --exclude __pycache__ "$ROOT/fde-kit" "$STAGE/"
-rsync -a --exclude .venv --exclude __pycache__ --exclude eval_results.json "$ROOT/fdekit-demo" "$STAGE/"
+EXCLUDES=(--exclude .venv --exclude dist --exclude __pycache__ --exclude .pytest_cache --exclude .ruff_cache
+  --exclude .mypy_cache --exclude tests --exclude eval_results.json)
+rsync -a "${EXCLUDES[@]}" "$ROOT/fde-kit" "$STAGE/"
+rsync -a "${EXCLUDES[@]}" "$ROOT/fdekit-demo" "$STAGE/"
 cp "$ROOT/fdekit-demo/Dockerfile" "$STAGE/Dockerfile"
 
 gcloud run deploy fdekit-demo --source "$STAGE" --project "$PROJECT" --region "$REGION" \

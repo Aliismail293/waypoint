@@ -5,3 +5,7 @@ tests
 evals
 .env
 WAYPOINT_SPEC.md
+fde-kit/
+fdekit-demo/
+.github/
+.claude/

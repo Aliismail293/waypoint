@@ -22,6 +22,13 @@ infra/deploy.sh               # builds from source with Cloud Build, deploys a n
 gcloud run services describe waypoint --region us-central1 --format='value(status.url)'
 ```
 
+`deploy.sh` first runs `infra/check_deploy_iam.sh`, a read-only check that prints the exact grant
+command if the build service account is missing a role. Without push access, a source build looks like
+this:
+- the docker step succeeds,
+- the build fails at PUSH with `FAILED_PRECONDITION` (code 9) and no step logs,
+- the `cloud-run-source-deploy` repository stays empty.
+
 Roll back to the previous revision:
 
 ```bash

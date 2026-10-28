@@ -12,3 +12,7 @@ infra/
 docs/
 .env
 WAYPOINT_SPEC.md
+fde-kit/
+fdekit-demo/
+.github/
+.claude/
