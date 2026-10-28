@@ -44,6 +44,13 @@ async def test_conversation_is_compacted_and_summary_metered():
     assert runtime.summarizer is not None and runtime.summarizer.usage.calls >= 1
 
 
+def test_defaults_keep_history_append_only():
+    runtime = WaypointRuntime.from_settings(Settings())
+    config = runtime.app.events_compaction_config
+    assert config is not None and config.token_threshold == 30000 and config.compaction_interval is None
+    assert not any(p.name == "waypoint_prune_old_tool_outputs" for p in runtime.app.plugins)
+
+
 def test_state_opt_can_be_switched_off():
     runtime = WaypointRuntime.from_settings(Settings(state_opt=False))
     assert runtime.summarizer is None and runtime.app.events_compaction_config is None

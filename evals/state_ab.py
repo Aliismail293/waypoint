@@ -1,7 +1,8 @@
 """Before/after for conversation-state optimisation (Phase 2 item 6).
 
 Runs the multi-turn conversations in evals/conversations.jsonl with state optimisation off (full history)
-and on (pruned old tool outputs + running-summary compaction), against the live stack. Reports, per variant:
+and on (the v1 policy measured on 2026-10-28: pruned old tool outputs + summary compaction every 3 turns),
+against the live stack. Reports, per variant:
 input tokens per turn, cost per conversation (including the summariser's own calls), P95 turn latency,
 implicit cache hit rate, and how many follow-ups still resolved (the answer mentions what the turn expects).
 
@@ -28,7 +29,8 @@ def percentile(values: list[float], pct: float) -> float:
 
 
 async def run_variant(state_opt: bool, conversations: list[dict[str, Any]]) -> dict[str, Any]:
-    settings = get_settings().model_copy(update={"state_opt": state_opt})
+    v1 = {"prune_tool_outputs": True, "compaction_interval": 3, "compaction_overlap": 1}
+    settings = get_settings().model_copy(update={"state_opt": state_opt, **v1})
     runtime = WaypointRuntime.from_settings(settings)
     turns, conversation_costs = [], []
     for conv in conversations:
