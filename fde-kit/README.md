@@ -59,16 +59,18 @@ official Google prices, so pass your own table for billing-grade numbers.
 from fde_kit.mcp_legacy import LegacyAdapter, TransientError, build_mcp_server
 
 adapter = LegacyAdapter(
-    fetch=old_api.get_rows,                      # (course, session) -> list[dict]
-    normalise=row_to_section,                    # dict -> your model
+    fetch=old_api.get_rows,  # (course, session) -> list[dict]
+    normalise=row_to_section,  # dict -> your model
     canonical_args=lambda c, s: (c.upper(), s),  # "mat224" and "MAT224" share a cache entry
     retry_on=(TransientError, TimeoutError),
     cache_ttl_s=900,
 )
 
+
 def search_sections(course: str, session: str) -> dict:
     """List the sections of a course in a session."""
     return {"sections": [s.model_dump() for s in adapter.get(course, session)]}
+
 
 build_mcp_server("timetable", "Course sections.", [search_sections]).run()  # stdio
 ```
@@ -82,11 +84,13 @@ The adapter retries with exponential backoff, keeps a TTL cache, normalises each
 from fde_kit.adk_metrics import request_scope
 from fde_kit.ragaudit_adk import AdkRagAdapter
 
+
 async def ask(question: str):
     with request_scope() as m:
         started = time.perf_counter()
         text = await my_runtime.ask(question)
     return text, m.retrieved_ids, m.to_dict(time.perf_counter() - started)
+
 
 def make_adapter(config: dict) -> AdkRagAdapter:  # ragaudit loads this from your adapter file
     return AdkRagAdapter(ask, metrics_log=config.get("metrics_log"), timeout_s=120)
@@ -101,11 +105,13 @@ latency and cost per question, which is what P95 and $/query are computed from.
 ```python
 from fde_kit.testing import ScriptedLlm, text_response, tool_call_response
 
-llm = ScriptedLlm(script=[
-    tool_call_response("lookup_agent", {"request": "MAT224"}),  # parent delegates
-    text_response("MAT224 needs MAT102.", input_tokens=120),    # child answers
-    text_response("You need MAT102 first."),                    # parent's final answer
-])
+llm = ScriptedLlm(
+    script=[
+        tool_call_response("lookup_agent", {"request": "MAT224"}),  # parent delegates
+        text_response("MAT224 needs MAT102.", input_tokens=120),  # child answers
+        text_response("You need MAT102 first."),  # parent's final answer
+    ]
+)
 ```
 
 `ScriptedLlm` replays the queued responses with token usage attached, records every request it receives,
