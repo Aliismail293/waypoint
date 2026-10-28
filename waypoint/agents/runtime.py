@@ -55,6 +55,7 @@ class RequestRecord:
     tool_errors: int = 0
     model_calls_started: int = 0
     limit_hit: bool = False
+    invalid_citations: list[str] = field(default_factory=list)
 
 
 current_record: ContextVar[RequestRecord | None] = ContextVar("waypoint_request_record", default=None)
@@ -147,6 +148,20 @@ class RecorderPlugin(BasePlugin):
         return None
 
 
+def check_citations(text: str, retrieved: list[str]) -> tuple[str, list[str], list[str]]:
+    """Every citation must point at a chunk a tool actually returned in this request.
+
+    Citations to anything else (a hallucinated or mistyped id) are removed from the text and reported,
+    so the UI never shows a source link that doesn't back the claim. Returns (text, valid, invalid).
+    """
+    allowed = set(retrieved)
+    cited = list(dict.fromkeys(CITATION.findall(text)))
+    invalid = [c for c in cited if c not in allowed]
+    for chunk_id in invalid:
+        text = text.replace(f"[{chunk_id}]", "")
+    return text, [c for c in cited if c in allowed], invalid
+
+
 @dataclass
 class Answer:
     text: str
@@ -233,5 +248,6 @@ class WaypointRuntime:
         finally:
             current_record.reset(token)
         latency_ms = (time.perf_counter() - started) * 1000
-        citations = list(dict.fromkeys(CITATION.findall(final_text)))
+        final_text, citations, invalid = check_citations(final_text, record.retrieved_chunk_ids)
+        record.invalid_citations = invalid
         return Answer(final_text, citations, record, latency_ms, session.id)

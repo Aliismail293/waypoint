@@ -29,3 +29,12 @@ def test_modes_for_ablation():
     retriever = make_retriever()
     assert all(r.vector_rank is None for r in retriever.search("major completion", mode="keyword"))
     assert all(r.keyword_rank is None for r in retriever.search("major completion", mode="vector"))
+
+
+def test_check_citations_drops_ids_not_retrieved():
+    from waypoint.agents.runtime import check_citations
+
+    text = "MAT224 needs MAT223 [cal:a#mat224h5]. Made up [cal:a#fake]."
+    cleaned, valid, invalid = check_citations(text, ["cal:a#mat224h5"])
+    assert valid == ["cal:a#mat224h5"] and invalid == ["cal:a#fake"]
+    assert "[cal:a#fake]" not in cleaned and "[cal:a#mat224h5]" in cleaned
