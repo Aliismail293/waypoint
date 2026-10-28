@@ -29,6 +29,7 @@ from google.genai import types
 from opentelemetry import trace
 
 from waypoint.agents.factory import Dependencies, build_root_agent
+from waypoint.agents.prompts import BUDGET_MESSAGE
 from waypoint.config import Settings, get_settings
 from waypoint.llm.embeddings import get_embedder
 from waypoint.observability.cost import cost_usd
@@ -62,6 +63,7 @@ class RequestRecord:
     model_calls_started: int = 0
     limit_hit: bool = False
     invalid_citations: list[str] = field(default_factory=list)
+    plan_checks: list[bool] = field(default_factory=list)  # critic's check_plan results, in order
 
     @property
     def input_tokens(self) -> int:
@@ -98,9 +100,6 @@ def _collect_chunk_ids(value: Any, out: list[str]) -> None:
     elif isinstance(value, list):
         for item in value:
             _collect_chunk_ids(item, out)
-
-
-BUDGET_MESSAGE = "Stopping here: this request reached Waypoint's per-question step limit."
 
 
 class RecorderPlugin(BasePlugin):
@@ -162,6 +161,8 @@ class RecorderPlugin(BasePlugin):
             record.retrieved_chunk_ids += [i for i in ids if i not in record.retrieved_chunk_ids]
             if isinstance(result, dict) and result.get("error"):
                 record.tool_errors += 1
+            if tool.name == "check_plan" and isinstance(result, dict):
+                record.plan_checks.append(bool(result.get("valid")))
         return None
 
     async def on_tool_error_callback(
@@ -214,6 +215,10 @@ class Answer:
             "citations": len(self.citations),
             "invalid_citations": len(r.invalid_citations),
             "limit_hit": r.limit_hit,
+            "critic_rounds": r.agents.count("plan_critic"),
+            # Plan validity as the critic's deterministic check saw it: first draft vs. the plan that shipped.
+            "plan_valid_first": r.plan_checks[0] if r.plan_checks else None,
+            "plan_valid_final": r.plan_checks[-1] if r.plan_checks else None,
         }
 
 

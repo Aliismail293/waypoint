@@ -4,8 +4,9 @@
     ├── policy_agent        search_calendar     hybrid RAG over the calendar, always cites
     ├── course_data_agent   catalog tools       allow-listed BigQuery queries + prerequisite checks
     ├── timetable_agent     MCP toolset         custom legacy-adapter MCP server over stdio
-    └── planner_agent       PlanReActPlanner    ReAct loop over the tools above + validate_plan
-         (critic_agent joins in Phase 2)
+    └── planner_agent       PlanWithCritic      self-reflection: draft -> critique -> revise (max 2)
+         ├── plan_drafter   PlanReActPlanner    ReAct loop over the tools above + validate_plan
+         └── plan_critic    check_plan          reviews the draft; deterministic validation can veto it
 
 Dependencies (retriever, catalog, timetable connection) are injected so tests can run the same tree
 offline with in-memory stores and the mock LLM.
@@ -16,7 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from google.adk.agents import LlmAgent
+from google.adk.agents import BaseAgent, LlmAgent
 from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.planners import PlanReActPlanner
 from google.adk.tools.agent_tool import AgentTool
@@ -25,6 +26,7 @@ from google.genai import types
 from mcp import StdioServerParameters
 
 from waypoint.agents import prompts
+from waypoint.agents.critic import build_plan_with_critic, critic_instruction, drafter_instruction, make_check_plan_tool
 from waypoint.config import Settings, get_settings
 from waypoint.llm.models import agent_model
 from waypoint.retrieval.hybrid import HybridRetriever
@@ -68,7 +70,7 @@ def timetable_toolset(deps: Dependencies) -> McpToolset:
     )
 
 
-def build_agents(deps: Dependencies) -> dict[str, LlmAgent]:
+def build_agents(deps: Dependencies) -> dict[str, BaseAgent]:
     s = deps.settings
     course_tools = make_course_tools(deps.catalog)
     policy_tools = make_policy_tools(deps.retriever)
@@ -101,15 +103,34 @@ def build_agents(deps: Dependencies) -> dict[str, LlmAgent]:
     # Lean toolset on purpose: one overview call + validation beats a dozen single-course lookups.
     get_course = next(t for t in course_tools if t.__name__ == "get_course")
     planner_tools: list[Any] = [*make_planning_tools(deps.catalog), *plan_tools, get_course, *policy_tools]
-    planner = LlmAgent(
-        name="planner_agent",
-        description="Builds and validates a term-by-term course plan toward a program.",
+    drafter = LlmAgent(
+        name="plan_drafter",
+        description="Drafts and validates a term-by-term course plan.",
         model=agent_model(s),
-        instruction=_instruction(prompts.PLANNER),
+        instruction=drafter_instruction(prompts.PLANNER),
         planner=PlanReActPlanner(),
         tools=planner_tools,
         generate_content_config=_config(s, s.max_output_tokens * 2),
     )
+    critic = LlmAgent(
+        name="plan_critic",
+        description="Reviews a drafted plan against the request, the requirements and deterministic validation.",
+        model=agent_model(s, name=s.critic_model),
+        instruction=critic_instruction,
+        include_contents="none",  # an independent read: the request and the draft, not the drafter's reasoning
+        tools=[make_check_plan_tool(deps.catalog)],
+        generate_content_config=_config(s),
+    )
+    planner: BaseAgent = build_plan_with_critic(
+        drafter=drafter,
+        critic=critic,
+        description="Builds and validates a term-by-term course plan toward a program.",
+        max_revisions=s.critic_max_revisions,
+    )
+    if not s.critic:  # for before/after measurement: the drafter alone is the Phase 1 planner
+        drafter.output_key = None
+        drafter.name = "planner_agent"
+        planner = drafter
     orchestrator = LlmAgent(
         name="waypoint",
         description="Waypoint orchestrator: routes questions to specialists and composes a cited answer.",
@@ -128,4 +149,6 @@ def build_agents(deps: Dependencies) -> dict[str, LlmAgent]:
 
 
 def build_root_agent(deps: Dependencies) -> LlmAgent:
-    return build_agents(deps)["waypoint"]
+    root = build_agents(deps)["waypoint"]
+    assert isinstance(root, LlmAgent)
+    return root

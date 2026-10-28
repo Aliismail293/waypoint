@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     model_location: str = "global"
     agent_model: str = "gemini-3.5-flash"
     critic_model: str = "gemini-3.5-flash"
+    critic: bool = True  # self-reflection on plans; off reproduces the Phase 1 planner for A/B runs
+    critic_max_revisions: int = 2
     embedding_model: str = "gemini-embedding-001"
     embedding_dim: int = 768
 
@@ -44,7 +46,7 @@ class Settings(BaseSettings):
     max_output_tokens: int = 4096
     thinking_level: str = "minimal"
     # Model calls per user request, counted across the orchestrator AND every specialist it calls.
-    max_model_calls_per_request: int = 16
+    max_model_calls_per_request: int = 24  # a planning request with critic rounds uses ~10-20
     max_requests_per_user_per_day: int = 30
 
     # Auth. Empty client id = sign-in not configured, and the chat API refuses requests (fail closed).

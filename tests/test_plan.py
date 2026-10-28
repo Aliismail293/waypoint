@@ -40,3 +40,13 @@ def test_overload():
 
 def test_empty_plan():
     assert validate_plan_text("", [], CATALOG)["valid"] is False
+
+
+def test_extract_plan_from_answer():
+    from evals.plan_validity import extract_plan
+
+    answer = (
+        "Here's a draft plan:\n- **2026 Fall**: MAT224H5, MAT232H5\n- **2027 Winter**: MAT301H5 (needs MAT224H5)\n"
+        "MAT301H5 requires MAT102H5 [cal:mathematical-sciences#mat301h5]."
+    )
+    assert extract_plan(answer) == "2026 Fall: MAT224H5, MAT232H5; 2027 Winter: MAT301H5"

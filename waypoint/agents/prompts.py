@@ -2,6 +2,8 @@
 
 from datetime import date
 
+BUDGET_MESSAGE = "Stopping here: this request reached Waypoint's per-question step limit."
+
 CITATION_RULE = (
     "Cite sources by putting the chunk_id from tool results in square brackets right after the claim it "
     "supports, e.g. [cal:mathematical-sciences#mat224h5]. Only cite chunk_ids that appeared in tool results. "
@@ -83,6 +85,22 @@ PLANNER = f"""You build term-by-term course plans for UTM students, reasoning st
 3. Call validate_plan with the plan in the form "2026 Fall: MAT224H5, STA256H5; 2027 Winter: MAT301H5".
    If it returns errors, fix them and call validate_plan again (at most 2 more times).
 Only use get_course or search_calendar if something essential is missing. About 4-6 tool calls in total.
-4. Final answer: the plan as a list of terms, the requirement each course satisfies, validation warnings,
+4. Final answer: start with the plan, one line per term in exactly this form (it is checked by code):
+   "- **2026 Fall**: MAT224H5, STA256H5". Then the requirement each course satisfies, validation warnings,
    and citations. {CITATION_RULE} Say clearly that this is a draft to confirm with an academic advisor.
+{UNTRUSTED_RULE}"""
+
+CRITIC = f"""You review a draft course plan that another assistant wrote for a UTM student. You are strict
+but fair: approve a plan that is correct, and ask for a revision only for real problems.
+1. If the draft contains a plan, call check_plan once with exactly the courses and terms the draft lists, in the
+   form "2026 Fall: MAT224H5, STA256H5; 2027 Winter: MAT301H5", and the student's completed courses from the
+   request. Don't fix the plan while copying it. If the draft has no plan (e.g. it explains why one isn't
+   possible), don't call check_plan.
+2. Check what code can't: does the plan answer the student's request (program, deadline, constraints)? Does
+   it cover the program's remaining requirements that the draft itself lists? Is every course code and
+   requirement claim backed by a [chunk_id] citation? Does it say the plan is a draft to confirm with an
+   academic advisor?
+3. Reply with APPROVE or REVISE alone on the first line. After REVISE, list each issue on its own line as a
+   concrete fix (e.g. "Move MAT301H5 after MAT224H5: its prerequisite"). Include every check_plan error.
+   Don't rewrite the plan yourself.
 {UNTRUSTED_RULE}"""

@@ -21,8 +21,15 @@ def test_tree_shape(settings):
     agents = build_agents(build_dependencies(settings))
     root = agents["waypoint"]
     assert {t.name for t in root.tools} == {"policy_agent", "course_data_agent", "timetable_agent", "planner_agent"}
-    assert agents["planner_agent"].planner is not None  # ReAct planner
-    assert "validate_plan" in {getattr(t, "__name__", "") for t in agents["planner_agent"].tools}
+    drafter, critic = agents["planner_agent"].sub_agents  # self-reflection: drafter + critic
+    assert drafter.planner is not None  # ReAct planner
+    assert "validate_plan" in {getattr(t, "__name__", "") for t in drafter.tools}
+    assert [getattr(t, "__name__", "") for t in critic.tools] == ["check_plan"]
+
+
+def test_critic_can_be_switched_off(settings):
+    agents = build_agents(build_dependencies(settings.model_copy(update={"critic": False})))
+    assert agents["planner_agent"].planner is not None  # the Phase 1 planner, for A/B runs
 
 
 async def test_course_question_delegates_and_cites(runtime):
@@ -63,3 +70,11 @@ async def test_request_wide_model_call_budget(settings):
     # orchestrator (1) + course_data_agent (1) run; the specialist's 2nd call and everything after is skipped
     assert answer.record.limit_hit
     assert len(answer.record.model_calls) == 2
+
+
+async def test_planning_runs_drafter_and_critic(runtime):
+    answer = await runtime.ask("u1", "Make me a plan to finish the Mathematics minor")
+    assert {"planner_agent", "plan_drafter", "plan_critic"} <= set(answer.record.agents)
+    metrics = answer.metrics()
+    assert 1 <= metrics["critic_rounds"] <= 3
+    assert not answer.record.limit_hit
