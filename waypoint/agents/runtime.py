@@ -26,13 +26,17 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 from google.adk.tools.base_tool import BaseTool
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types
+from opentelemetry import trace
 
 from waypoint.agents.factory import Dependencies, build_root_agent
 from waypoint.config import Settings, get_settings
 from waypoint.llm.embeddings import get_embedder
+from waypoint.observability.cost import cost_usd
+from waypoint.observability.tracing import ObservabilityPlugin, hash_user, log_request_metrics, setup_tracing
 from waypoint.retrieval.hybrid import HybridRetriever
 
 APP_NAME = "waypoint"
+tracer = trace.get_tracer("waypoint")
 CITATION = re.compile(r"\[(cal:[a-z0-9-]+#[a-z0-9-]+)\]")
 
 
@@ -48,6 +52,8 @@ class ModelCall:
 
 @dataclass
 class RequestRecord:
+    """Everything one request did. Filled in by RecorderPlugin as agents, models and tools run."""
+
     retrieved_chunk_ids: list[str] = field(default_factory=list)
     tool_calls: list[str] = field(default_factory=list)
     agents: list[str] = field(default_factory=list)
@@ -56,6 +62,25 @@ class RequestRecord:
     model_calls_started: int = 0
     limit_hit: bool = False
     invalid_citations: list[str] = field(default_factory=list)
+
+    @property
+    def input_tokens(self) -> int:
+        return sum(c.input_tokens for c in self.model_calls)
+
+    @property
+    def output_tokens(self) -> int:
+        return sum(c.output_tokens + c.thinking_tokens for c in self.model_calls)
+
+    @property
+    def cached_tokens(self) -> int:
+        return sum(c.cached_tokens for c in self.model_calls)
+
+    @property
+    def cost_usd(self) -> float:
+        return sum(
+            cost_usd(c.model, c.input_tokens, c.output_tokens, c.cached_tokens, c.thinking_tokens)
+            for c in self.model_calls
+        )
 
 
 current_record: ContextVar[RequestRecord | None] = ContextVar("waypoint_request_record", default=None)
@@ -170,6 +195,27 @@ class Answer:
     latency_ms: float
     session_id: str
 
+    def metrics(self) -> dict[str, Any]:
+        r = self.record
+        seconds = max(self.latency_ms / 1000, 1e-6)
+        return {
+            "latency_ms": round(self.latency_ms, 1),
+            "model_calls": len(r.model_calls),
+            "input_tokens": r.input_tokens,
+            "output_tokens": r.output_tokens,
+            "cached_tokens": r.cached_tokens,
+            "cache_hit_rate": round(r.cached_tokens / r.input_tokens, 4) if r.input_tokens else 0.0,
+            "tokens_per_second": round(r.output_tokens / seconds, 2),
+            "cost_usd": round(r.cost_usd, 6),
+            "tool_calls": len(r.tool_calls),
+            "tool_errors": r.tool_errors,
+            "agents": sorted(set(r.agents)),
+            "retrieved_chunks": len(r.retrieved_chunk_ids),
+            "citations": len(self.citations),
+            "invalid_citations": len(r.invalid_citations),
+            "limit_hit": r.limit_hit,
+        }
+
 
 def build_dependencies(settings: Settings) -> Dependencies:
     """Real backends when configured (Cloud SQL, BigQuery); otherwise offline ones from data/corpus."""
@@ -208,13 +254,14 @@ class WaypointRuntime:
         self.settings = settings or get_settings()
         self.session_service = session_service or InMemorySessionService()
         recorder = RecorderPlugin(self.settings.max_model_calls_per_request)
-        self.app = App(name=APP_NAME, root_agent=agent, plugins=[recorder, *(plugins or [])])
+        self.app = App(name=APP_NAME, root_agent=agent, plugins=[recorder, ObservabilityPlugin(), *(plugins or [])])
         self.root_agent_name = agent.name
         self.runner = Runner(app=self.app, session_service=self.session_service)
 
     @classmethod
     def from_settings(cls, settings: Settings | None = None) -> "WaypointRuntime":
         settings = settings or get_settings()
+        setup_tracing(settings)
         agent = build_root_agent(build_dependencies(settings))
         return cls(agent, settings, build_session_service(settings))
 
@@ -229,25 +276,34 @@ class WaypointRuntime:
         token = current_record.set(record)
         started = time.perf_counter()
         final_text = ""
-        try:
-            message = types.Content(role="user", parts=[types.Part(text=text)])
-            run_config = RunConfig(max_llm_calls=self.settings.max_model_calls_per_request)
-            async for event in self.runner.run_async(
-                user_id=user_id, session_id=session.id, new_message=message, run_config=run_config
-            ):
-                if event.author == self.root_agent_name and event.content and event.is_final_response():
-                    texts = [p.text for p in event.content.parts or [] if p.text and not p.thought]
-                    if texts:
-                        final_text = "\n".join(texts)
-        except LlmCallsLimitExceededError:
-            record.limit_hit = True
-            final_text = (
-                "That question needed more steps than Waypoint allows per request. Try asking about one "
-                "program, course or term at a time."
-            )
-        finally:
-            current_record.reset(token)
-        latency_ms = (time.perf_counter() - started) * 1000
-        final_text, citations, invalid = check_citations(final_text, record.retrieved_chunk_ids)
-        record.invalid_citations = invalid
-        return Answer(final_text, citations, record, latency_ms, session.id)
+        with tracer.start_as_current_span("waypoint.request") as span:
+            span.set_attribute("langfuse.trace.name", "waypoint.request")
+            span.set_attribute("langfuse.user.id", hash_user(user_id))
+            span.set_attribute("langfuse.session.id", session.id)
+            try:
+                message = types.Content(role="user", parts=[types.Part(text=text)])
+                run_config = RunConfig(max_llm_calls=self.settings.max_model_calls_per_request)
+                async for event in self.runner.run_async(
+                    user_id=user_id, session_id=session.id, new_message=message, run_config=run_config
+                ):
+                    if event.author == self.root_agent_name and event.content and event.is_final_response():
+                        texts = [p.text for p in event.content.parts or [] if p.text and not p.thought]
+                        if texts:
+                            final_text = "\n".join(texts)
+            except LlmCallsLimitExceededError:
+                record.limit_hit = True
+                final_text = (
+                    "That question needed more steps than Waypoint allows per request. Try asking about one "
+                    "program, course or term at a time."
+                )
+            finally:
+                current_record.reset(token)
+            latency_ms = (time.perf_counter() - started) * 1000
+            final_text, citations, invalid = check_citations(final_text, record.retrieved_chunk_ids)
+            record.invalid_citations = invalid
+            answer = Answer(final_text, citations, record, latency_ms, session.id)
+            metrics = answer.metrics()
+            for key, value in metrics.items():
+                span.set_attribute(f"waypoint.{key}", value)
+            log_request_metrics({"user": hash_user(user_id), "session": session.id, **metrics})
+        return answer

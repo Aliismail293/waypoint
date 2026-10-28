@@ -42,3 +42,26 @@ def test_hash_embedder_is_unit_length_and_lexical():
     assert abs(sum(v * v for v in a) - 1.0) < 1e-9
     assert a == b
     assert sum(x * y for x, y in zip(a, c, strict=True)) < 0.99
+
+
+async def test_retrying_gemini_retries_malformed_turns(monkeypatch):
+    from google.adk.models.google_llm import Gemini
+    from google.adk.models.llm_request import LlmRequest
+    from google.adk.models.llm_response import LlmResponse
+
+    from waypoint.llm.models import RetryingGemini
+
+    replies = [
+        LlmResponse(error_code="MALFORMED_RESPONSE"),
+        LlmResponse(content=types.Content(role="model", parts=[types.Part(text="ok")])),
+    ]
+    calls = []
+
+    async def fake_generate(self, llm_request, stream=False):
+        calls.append(1)
+        yield replies[len(calls) - 1]
+
+    monkeypatch.setattr(Gemini, "generate_content_async", fake_generate)
+    model = RetryingGemini(model="gemini-3.5-flash")
+    out = [r async for r in model.generate_content_async(LlmRequest())]
+    assert len(calls) == 2 and out[-1].content.parts[0].text == "ok"

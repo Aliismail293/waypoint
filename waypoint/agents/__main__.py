@@ -6,6 +6,8 @@ uv run python -m waypoint.agents "What are the prerequisites for MAT224?"
 import asyncio
 import sys
 
+from opentelemetry import trace
+
 from waypoint.agents.runtime import WaypointRuntime
 
 
@@ -20,7 +22,8 @@ async def main(question: str) -> None:
     tokens_in = sum(c.input_tokens for c in answer.record.model_calls)
     tokens_out = sum(c.output_tokens + c.thinking_tokens for c in answer.record.model_calls)
     print(f"model calls: {len(answer.record.model_calls)}, tokens in/out: {tokens_in}/{tokens_out}")
-    print(f"latency: {answer.latency_ms:.0f} ms")
+    print(f"latency: {answer.latency_ms:.0f} ms, cost: ${answer.record.cost_usd:.4f}")
+    trace.get_tracer_provider().force_flush()  # type: ignore[attr-defined]  # export spans before exit
 
 
 if __name__ == "__main__":

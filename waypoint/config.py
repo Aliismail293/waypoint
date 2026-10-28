@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
     cloud_trace: bool = False
+    # Off by default: student questions and answers stay out of trace storage (only metadata and metrics).
+    trace_content: bool = False
+    service_name: str = "waypoint"
 
     # Sessions: "memory" (tests/local) or "firestore".
     sessions: str = "memory"
