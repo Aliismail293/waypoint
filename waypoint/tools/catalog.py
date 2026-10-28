@@ -3,7 +3,8 @@
 The same named queries have two backends:
 - BigQueryCatalog runs the SQL below against the `waypoint` dataset with query parameters.
 - InMemoryCatalog answers them from data/corpus/*.jsonl, for tests and offline dev.
-Phase 2 moves the BigQuery side behind MCP Toolbox for Databases (infra/toolbox/tools.yaml mirrors this).
+- ToolboxCatalog (waypoint/tools/toolbox.py) calls MCP Toolbox for Databases, whose tools.yaml is generated
+  from NAMED_QUERIES.
 """
 
 import json

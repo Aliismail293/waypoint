@@ -18,7 +18,8 @@ class Settings(BaseSettings):
     embeddings: str = "mock"
     # Data backends: "memory" loads data/corpus/*.jsonl (offline); "pgvector" / "bigquery" use GCP.
     store: str = "memory"
-    catalog: str = "memory"
+    catalog: str = "memory"  # memory | bigquery | toolbox
+    toolbox_url: str = "http://127.0.0.1:5000"
 
     gcp_project: str = "waypoint-513003"
     gcp_region: str = "us-central1"

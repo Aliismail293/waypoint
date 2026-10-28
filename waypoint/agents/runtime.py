@@ -235,7 +235,15 @@ def build_dependencies(settings: Settings) -> Dependencies:
     else:
         store = InMemoryStore()
         load_chunks(store, read_corpus(Path("data/corpus/calendar_chunks.jsonl")), embedder)
-    catalog: Catalog = CachedCatalog(BigQueryCatalog(settings)) if settings.catalog == "bigquery" else InMemoryCatalog()
+    catalog: Catalog
+    if settings.catalog == "bigquery":
+        catalog = CachedCatalog(BigQueryCatalog(settings))
+    elif settings.catalog == "toolbox":
+        from waypoint.tools.toolbox import ToolboxCatalog
+
+        catalog = CachedCatalog(ToolboxCatalog(settings.toolbox_url))
+    else:
+        catalog = InMemoryCatalog()
     return Dependencies(retriever=HybridRetriever(store, embedder), catalog=catalog, settings=settings)
 
 
