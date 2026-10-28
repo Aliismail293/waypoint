@@ -31,8 +31,10 @@ from opentelemetry import trace
 
 from waypoint.agents.factory import Dependencies, build_root_agent
 from waypoint.agents.prompts import BUDGET_MESSAGE
+from waypoint.agents.state import MeteredLlm, PruneOldToolOutputs, state_options
 from waypoint.config import Settings, get_settings
 from waypoint.llm.embeddings import get_embedder
+from waypoint.llm.models import agent_model
 from waypoint.observability.cost import cost_usd
 from waypoint.observability.tracing import ObservabilityPlugin, hash_user, log_request_metrics, setup_tracing
 from waypoint.retrieval.hybrid import HybridRetriever
@@ -282,7 +284,18 @@ class WaypointRuntime:
         self.deps: Dependencies | None = None
         self.session_service = session_service or InMemorySessionService()
         recorder = RecorderPlugin(self.settings.max_model_calls_per_request)
-        self.app = App(name=APP_NAME, root_agent=agent, plugins=[recorder, ObservabilityPlugin(), *(plugins or [])])
+        all_plugins: list[BasePlugin] = [recorder, ObservabilityPlugin(), *(plugins or [])]
+        options: dict[str, Any] = {}
+        self.summarizer: MeteredLlm | None = None
+        if self.settings.state_opt:
+            all_plugins.append(PruneOldToolOutputs(agent.name))
+            options, self.summarizer = state_options(
+                agent_model(self.settings),
+                compaction_interval=self.settings.compaction_interval,
+                overlap=self.settings.compaction_overlap,
+                explicit_cache=self.settings.explicit_cache,
+            )
+        self.app = App(name=APP_NAME, root_agent=agent, plugins=all_plugins, **options)
         self.root_agent_name = agent.name
         self.runner = Runner(app=self.app, session_service=self.session_service)
 

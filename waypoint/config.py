@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     critic_model: str = "gemini-3.5-flash"
     critic: bool = True  # self-reflection on plans; off reproduces the Phase 1 planner for A/B runs
     critic_max_revisions: int = 2
+    # Conversation state (waypoint/agents/state.py). Off reproduces the unoptimised baseline for A/B runs.
+    state_opt: bool = True
+    compaction_interval: int = 3  # summarise older turns every 3 turns...
+    compaction_overlap: int = 1  # ...keeping the latest turn verbatim alongside the summary
+    explicit_cache: bool = False  # creates a billed CachedContent resource; see state.py
     embedding_model: str = "gemini-embedding-001"
     embedding_dim: int = 768
 
