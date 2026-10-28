@@ -62,3 +62,10 @@ button:disabled { opacity: .5; cursor: default; }
 .feedback button.chosen { border-color: var(--accent); background: var(--user); }
 .feedback .escalate { margin-left: auto; }
 footer { color: var(--muted); font-size: 12px; padding-bottom: 24px; }
+/* Privacy policy and terms pages */
+.home { color: inherit; text-decoration: none; }
+.doc { padding-bottom: 16px; }
+.doc h2 { font-size: 18px; margin: 28px 0 8px; }
+.doc li { margin: 4px 0; }
+.doc .effective { color: var(--muted); font-size: 14px; margin: 18px 0 0; }
+.legal { margin-top: 6px; }

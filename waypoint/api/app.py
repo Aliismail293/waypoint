@@ -2,6 +2,7 @@
 
 Endpoints
 - GET  /                 chat UI (static/index.html)
+- GET  /privacy, /terms  privacy policy and terms of use (public, no sign-in)
 - GET  /api/config       public config for the UI (OAuth client id, advisor link)
 - POST /api/chat         ask a question (requires a Google ID token)
 - POST /api/feedback     thumbs up/down on an answer
@@ -103,6 +104,14 @@ def create_app(
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(STATIC / "index.html")
+
+    @app.get("/privacy")
+    def privacy() -> FileResponse:
+        return FileResponse(STATIC / "privacy.html")
+
+    @app.get("/terms")
+    def terms() -> FileResponse:
+        return FileResponse(STATIC / "terms.html")
 
     @app.get("/healthz")
     def healthz() -> dict:

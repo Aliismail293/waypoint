@@ -3,7 +3,8 @@
 ADK already emits a span per agent invocation, LLM call and tool call (with gen_ai.usage.* token counts).
 We add: a root `waypoint.request` span per question with request-level metrics, and cost attributes on
 each LLM-call span (`ObservabilityPlugin`). Message content is NOT captured in spans by default
-(ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false): students' questions stay out of third-party trace storage.
+(Settings.trace_content=False, enforced per request by WaypointRuntime's TelemetryConfig): students'
+questions stay out of third-party trace storage.
 """
 
 import base64

@@ -24,6 +24,7 @@ from google.adk.models.llm_response import LlmResponse
 from google.adk.plugins.base_plugin import BasePlugin
 from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
+from google.adk.telemetry import ContentCapturingMode, TelemetryConfig
 from google.adk.tools.base_tool import BaseTool
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types
@@ -301,6 +302,10 @@ class WaypointRuntime:
         self.app = App(name=APP_NAME, root_agent=agent, plugins=all_plugins, **options)
         self.root_agent_name = agent.name
         self.runner = Runner(app=self.app, session_service=self.session_service)
+        # Message content in spans is decided here, per request, not by env vars: on ADK 2.13 the GenAI spans
+        # follow OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT, which ADK_CAPTURE_... doesn't override.
+        capture = ContentCapturingMode.SPAN_ONLY if self.settings.trace_content else ContentCapturingMode.NO_CONTENT
+        self._telemetry = TelemetryConfig(capture_message_content=capture)
 
     @classmethod
     def from_settings(cls, settings: Settings | None = None) -> "WaypointRuntime":
@@ -365,7 +370,7 @@ class WaypointRuntime:
         final_text = ""
         try:
             message = types.Content(role="user", parts=[types.Part(text=text)])
-            run_config = RunConfig(max_llm_calls=self.settings.max_model_calls_per_request)
+            run_config = RunConfig(max_llm_calls=self.settings.max_model_calls_per_request, telemetry=self._telemetry)
             async for event in self.runner.run_async(
                 user_id=user_id, session_id=session_id, new_message=message, run_config=run_config
             ):

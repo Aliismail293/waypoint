@@ -26,6 +26,16 @@ def test_static_and_config():
         assert client.get("/healthz").json() == {"ok": True}
 
 
+@pytest.mark.parametrize(("path", "heading"), [("/privacy", "Privacy policy"), ("/terms", "Terms of use")])
+def test_legal_pages_are_public(path, heading):
+    # Sign-in is configured, but no token is sent: these pages must still load (Google requires them).
+    with client_for(google_client_id="cid") as client:
+        response = client.get(path)
+        assert response.status_code == 200
+        assert heading in response.text and "student project" in response.text
+        assert f'href="{path}"' in client.get("/").text  # linked from the chat UI footer
+
+
 def test_chat_fails_closed_without_client_id():
     with client_for(google_client_id="") as client:
         assert client.post("/api/chat", json={"message": "hi"}).status_code == 503

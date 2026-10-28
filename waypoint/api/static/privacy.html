@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy policy — Waypoint</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="logo" aria-hidden="true">◆</span>
+      <div>
+        <h1><a href="/" class="home">Waypoint</a></h1>
+        <p class="tagline">Privacy policy</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="doc">
+    <p class="effective">Effective 28 October 2026</p>
+
+    <section class="notice">
+      Waypoint is a <strong>student project</strong> built and run by Ali Ismail. It is not an official
+      University of Toronto service, and it isn't affiliated with or endorsed by the University.
+    </section>
+
+    <h2>The short version</h2>
+    <ul>
+      <li>We keep your Google account ID so your conversations stay yours. We don't store your name or email address.</li>
+      <li>Your questions and Waypoint's answers are stored so a conversation can continue. Emails, phone numbers and
+        student numbers are removed first.</li>
+      <li>Your questions are sent to Google's Gemini models on Vertex AI to produce answers.</li>
+      <li>Logs and traces hold timings, costs and a pseudonymous ID, not the text of your questions.</li>
+      <li>Waypoint never accesses ACORN, transcripts, grades or any university account.</li>
+      <li>Your data is never sold or used for advertising.</li>
+      <li>To have your data deleted, email <a href="mailto:alii.ekramy.ismail@gmail.com">alii.ekramy.ismail@gmail.com</a>.</li>
+    </ul>
+
+    <h2>Signing in with Google</h2>
+    <p>
+      Waypoint uses Google's "Sign in with Google" button. When you sign in, Google gives your browser a signed
+      token that contains your Google account ID, name, email address, whether the email is verified, and
+      profile picture link. Your browser sends the token with each question, and Waypoint's server checks it
+      with Google's public keys.
+    </p>
+    <p>From that token, Waypoint:</p>
+    <ul>
+      <li><strong>keeps</strong> your Google account ID, a number that identifies your account, to keep your
+        conversations separate from everyone else's;</li>
+      <li><strong>uses but doesn't store</strong> your email address, only to check whether you are the site's operator;</li>
+      <li><strong>shows</strong> your first name in the page header. The name stays in your browser.</li>
+    </ul>
+    <p>
+      Your profile picture isn't used. The token lives only in the open page and is gone when you close it.
+      Waypoint sets no cookies of its own. Google's sign-in button may set its own cookie (for example, to
+      remember that you dismissed the sign-in prompt), and
+      <a href="https://policies.google.com/privacy" rel="noopener">Google's privacy policy</a> covers that.
+    </p>
+
+    <h2>Your conversations</h2>
+    <p>
+      Conversations are stored in Google Cloud Firestore, in the United States (us-central1), under your Google
+      account ID. A conversation record holds:
+    </p>
+    <ul>
+      <li>your questions, after redaction (see <a href="#redaction">below</a>);</li>
+      <li>Waypoint's answers;</li>
+      <li>what Waypoint looked up to answer: calendar passages, course information, and any course plans it
+        drafted and checked for you.</li>
+    </ul>
+    <p>
+      There is no separate "saved plans" feature. A plan exists only as part of the conversation where Waypoint
+      drafted it.
+    </p>
+    <p>
+      <strong>How long:</strong> conversations don't expire automatically yet. They are kept until you ask for
+      them to be deleted, or until the project is shut down.
+    </p>
+
+    <h2>Ratings, advisor clicks and usage records</h2>
+    <p>
+      To understand whether Waypoint helps, it records a small usage event in Firestore:
+    </p>
+    <ul>
+      <li><strong>Each question:</strong> response time, cost, and whether the question was off-topic.</li>
+      <li><strong>Thumbs up or down:</strong> your rating of an answer.</li>
+      <li><strong>"Ask an advisor":</strong> that you clicked it. The link opens UTM's advising website, and
+        Waypoint sends nothing to advisors.</li>
+    </ul>
+    <p>
+      Each event also holds a pseudonymous ID (a one-way hash of your Google account ID), the conversation ID and
+      the answer ID. Events never contain the text of your questions or answers, and they are kept on the same
+      terms as conversations. The operator can see totals, such as the number of users and the thumbs-up rate,
+      not individual conversations.
+    </p>
+
+    <h2>AI processing: Vertex AI Gemini</h2>
+    <p>
+      To answer, Waypoint sends Google's Gemini models on Vertex AI your question (after redaction), the earlier
+      turns of the same conversation, and the calendar passages and course data it looked up. Search queries
+      based on your question are also turned into embeddings, which are numeric representations used to find
+      relevant calendar passages, with Google's embedding model. Requests go through Google's global endpoint,
+      so they may be processed outside Canada. Under
+      <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/data-governance" rel="noopener">Google
+      Cloud's terms</a>, Google doesn't use this data to train its models.
+    </p>
+
+    <h2>Logs and traces</h2>
+    <ul>
+      <li>
+        <strong>Cloud Logging (Google Cloud).</strong> Waypoint writes one line per question with the
+        pseudonymous ID, the conversation ID and numbers: timings, tokens, cost, and how many sources were cited.
+        If something was redacted, the line says only which kind (for example, "email"), never the value.
+        Google Cloud Run also keeps standard request logs: your IP address, browser type, time and the page
+        requested. Logs are kept for 30 days.
+      </li>
+      <li>
+        <strong>Cloud Trace (Google Cloud) and Langfuse.</strong> Waypoint sends performance traces: how long each
+        step took, token counts, cost, which tools were used, the pseudonymous ID and the conversation ID.
+        Langfuse is a third-party service for monitoring AI applications. Traces don't include the text of your
+        questions or answers; this is enforced in Waypoint's code and checked by its automated tests. Cloud
+        Trace keeps traces for 30 days.
+      </li>
+    </ul>
+
+    <h2 id="redaction">Personal information redaction</h2>
+    <p>
+      Before your question reaches the AI model, the conversation store or the traces, Waypoint replaces email
+      addresses, phone numbers and 9–10 digit numbers (such as student numbers) with a placeholder like
+      "[redacted email]". It does the same to answers. This works by matching patterns, so it can't catch
+      everything. Names, addresses, grades and anything else you type are not removed. Please don't enter
+      sensitive personal information.
+    </p>
+
+    <h2>What Waypoint never does</h2>
+    <ul>
+      <li>It never signs in to or reads ACORN, Quercus, transcripts, grades or any University of Toronto
+        system. Its course information comes from the public Academic Calendar.</li>
+      <li>It never sells your data or shares it for advertising, and the site has no ads, ad trackers or
+        third-party analytics.</li>
+    </ul>
+
+    <h2>Who can access your data</h2>
+    <p>
+      The project's developer, as the owner of the Google Cloud project, and the service providers named above:
+      Google Cloud (Firestore, Vertex AI, Cloud Logging, Cloud Trace) and Langfuse, each acting on Waypoint's
+      behalf. Data is disclosed to anyone else only if the law requires it.
+    </p>
+
+    <h2>Deleting your data</h2>
+    <p>
+      Email <a href="mailto:alii.ekramy.ismail@gmail.com">alii.ekramy.ismail@gmail.com</a> from the Google account
+      you used with Waypoint. Waypoint doesn't store email addresses, so the reply will include a simple step to
+      confirm which account is yours. Then your conversations and usage records are deleted. Logs and traces
+      can't be linked to you by name and expire on the schedules above.
+    </p>
+
+    <h2>Changes</h2>
+    <p>
+      If this policy changes, the effective date above will change too. Material changes will be noted on the
+      main page.
+    </p>
+  </main>
+
+  <footer>
+    <a href="/">Back to Waypoint</a> · <a href="/terms">Terms of use</a>
+  </footer>
+</body>
+</html>

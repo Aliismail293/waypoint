@@ -31,3 +31,13 @@ async def test_request_span_and_llm_spans_carry_metrics(spans):
     assert all("gen_ai.usage.input_tokens" in s.attributes for s in spans if s.name.startswith("generate_content"))
     assert any(s.name.startswith("execute_tool") for s in spans)  # ADK's own tool spans
     assert answer.metrics()["tokens_per_second"] > 0
+
+
+@pytest.mark.parametrize("trace_content", [False, True])
+async def test_question_text_reaches_spans_only_when_trace_content_is_on(spans, monkeypatch, trace_content):
+    # An env var that would turn content capture on must not override Settings.trace_content=False.
+    monkeypatch.setenv("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", "SPAN_ONLY")
+    runtime = WaypointRuntime.from_settings(Settings(llm="mock", embeddings="mock", trace_content=trace_content))
+    await runtime.ask("sub-1", "What are the prerequisites for MAT224? I'm Zebracorn.")
+    texts = [str(v) for s in spans.get_finished_spans() for v in (s.attributes or {}).values()]
+    assert any("Zebracorn" in t for t in texts) is trace_content
