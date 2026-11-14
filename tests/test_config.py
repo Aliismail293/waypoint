@@ -1,5 +1,3 @@
-
-
 def test_model_ids_are_checked_at_startup_in_live_mode_only() -> None:
     import pytest
 

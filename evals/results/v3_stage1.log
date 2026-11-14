@@ -1,0 +1,5 @@
+Corpus: 72 chunk(s), index de4a236de260: 0 new, 0 changed, 0 deleted, 72 unchanged; 0 question(s) marked stale.
+/Users/loly/Desktop/waypoint/waypoint/agents/state.py:127: UserWarning: [EXPERIMENTAL] EventsCompactionConfig: This feature is experimental and may change or be removed in future versions without notice. It may introduce breaking changes at any time.
+  "events_compaction_config": EventsCompactionConfig(summarizer=LlmEventSummarizer(llm=metered), **trigger)
+App name mismatch detected. The runner is configured with app name "waypoint", but the root agent was loaded from "/Users/loly/Desktop/waypoint/waypoint/agents", which implies app name "agents".
+Evaluating the test split with adapter /Users/loly/Desktop/waypoint/evals/waypoint_adapter.py, judge google/gemini-3.5-flash...

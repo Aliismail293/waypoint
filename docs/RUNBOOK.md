@@ -73,7 +73,7 @@ curl -s -H "Authorization: Bearer $(gcloud auth print-identity-token)" -H 'Conte
 **Latency P95 up**
 - Check `model_calls` per request on the dashboard. Latency tracks the number of sequential calls (about 2 s
   each).
-- Check the timetable MCP (`tool_errors`) and Cloud SQL connections.
+- Check Cloud SQL connections (and `tool_errors`; the timetable MCP is a demo and no longer in the user path).
 
 **Cost per request up**
 - Check `input_tokens` growth. Long conversations: confirm `WAYPOINT_STATE_OPT=true`.
