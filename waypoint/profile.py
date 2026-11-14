@@ -32,6 +32,8 @@ class Profile(BaseModel):
     program: str = Field(default="", max_length=40)  # a program code such as ERMAJ2511, or empty
     grad_year: int | None = None
     onboarded: bool = False  # false until the student finishes or skips onboarding
+    # One-time toggle: "I completed the high-school prerequisites for university math (MHF4U, MCV4U)".
+    highschool_done: bool = False
 
     def codes(self, status: str | None = None) -> list[str]:
         return [c.code for c in self.courses if status is None or c.status == status]
@@ -79,12 +81,13 @@ def validate_profile(raw: dict[str, Any], catalog: Catalog, today: date | None =
         program=program,
         grad_year=grad_year,
         onboarded=bool(raw.get("onboarded", True)),
+        highschool_done=bool(raw.get("highschool_done", False)),
     )
 
 
 def profile_context(profile: Profile) -> str:
     """The text the agents see. Course codes, statuses, program and year only: nothing identifying."""
-    if not profile.courses and not profile.program and not profile.grad_year:
+    if not profile.courses and not profile.program and not profile.grad_year and not profile.highschool_done:
         return ""
     parts = []
     if done := profile.codes("done"):
@@ -95,6 +98,8 @@ def profile_context(profile: Profile) -> str:
         parts.append(f"Program: {profile.program}.")
     if profile.grad_year:
         parts.append(f"Expected graduation year: {profile.grad_year}.")
+    if profile.highschool_done:
+        parts.append("High-school math prerequisites completed.")
     return " ".join(parts)
 
 

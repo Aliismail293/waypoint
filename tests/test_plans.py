@@ -26,7 +26,8 @@ from waypoint.tools.catalog import InMemoryCatalog
 from waypoint.tools.plan import validate_plan_text
 
 CATALOG = InMemoryCatalog()
-OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory")
+# fact_route off: these tests exercise the agent/router/stream paths; the fact route has tests/test_facts.py
+OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory", fact_route="off")
 
 
 def plan(*terms: tuple[str, list[str]]) -> Plan:

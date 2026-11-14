@@ -19,7 +19,8 @@ from waypoint.profile import (
 )
 from waypoint.tools.catalog import InMemoryCatalog
 
-OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory")
+# fact_route off: these tests exercise the agent/router/stream paths; the fact route has tests/test_facts.py
+OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory", fact_route="off")
 
 
 class FixtureCatalog:

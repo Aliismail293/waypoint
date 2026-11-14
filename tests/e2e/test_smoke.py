@@ -18,7 +18,7 @@ from waypoint.config import Settings
 
 sync_api = pytest.importorskip("playwright.sync_api")
 
-OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory")
+OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory", fact_route="off")
 
 
 @pytest.fixture

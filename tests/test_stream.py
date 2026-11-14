@@ -12,7 +12,8 @@ from waypoint.api.app import create_app
 from waypoint.cache import CachedAnswer, MemoryAnswerCache, cache_key, normalise
 from waypoint.config import Settings
 
-OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory")
+# fact_route off: these tests exercise the agent/router/stream paths; the fact route has tests/test_facts.py
+OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory", fact_route="off")
 
 
 def parse_sse(body: str) -> list[tuple[str, object]]:

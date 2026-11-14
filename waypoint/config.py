@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     router: str = "on"
     router_model: str = "gemini-3.5-flash-lite"
     router_timeout_s: float = 6.0
+    # Fact route (waypoint/facts.py): prerequisite/exclusion/credit/program questions are answered from structured
+    # data in code. fact_phrasing "model" lets one short model call reword the facts (live mode only).
+    fact_route: str = "on"
+    fact_phrasing: str = "model"
+    fact_phrasing_timeout_s: float = 4.0
+    # Hard time budget for a planning question; past it the answer is whatever is known plus "open My plan".
+    plan_budget_s: float = 20.0
     # Answer cache for identical normalised questions (waypoint/cache.py): off | memory | firestore.
     answer_cache: str = "memory"
     answer_cache_ttl_hours: float = 24.0

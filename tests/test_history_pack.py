@@ -10,7 +10,8 @@ from waypoint.config import Settings
 from waypoint.history import MAX_TURNS, SourceRef, Turn, matches, record, topic_of
 from waypoint.pack import Pack, build_pack, latin1, pack_email, pack_pdf, plain
 
-OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory")
+# fact_route off: these tests exercise the agent/router/stream paths; the fact route has tests/test_facts.py
+OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory", fact_route="off")
 URL = "https://utm.calendar.utoronto.ca/course/MAT224H5"
 
 

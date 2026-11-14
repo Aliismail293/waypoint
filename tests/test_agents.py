@@ -10,7 +10,15 @@ from waypoint.config import Settings
 @pytest.fixture(scope="module")
 def settings():
     # router off: these tests exercise the full orchestrator path (the fast path is covered in test_stream.py)
-    return Settings(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory", router="off")
+    return Settings(
+        llm="mock",
+        embeddings="mock",
+        store="memory",
+        catalog="memory",
+        sessions="memory",
+        router="off",
+        fact_route="off",
+    )
 
 
 @pytest.fixture

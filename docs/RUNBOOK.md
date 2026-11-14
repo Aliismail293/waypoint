@@ -65,7 +65,7 @@ curl -s -H "Authorization: Bearer $(gcloud auth print-identity-token)" -H 'Conte
 - Look for `MALFORMED_RESPONSE` warnings in logs. `RetryingGemini` retries twice. A spike means a model-side
   issue, so keep watching and consider pinning a model version.
 
-**"Stopping here: this request reached Waypoint's per-question step limit."**
+**"That needed more steps than I can take in one answer…"** (the old wording was "Stopping here: … step limit")
 - `limit_hit=true` in the request log. One question used 24 model calls.
 - Find the trace and check whether a specialist looped. Fix the prompt or the tool.
 - Raise `WAYPOINT_MAX_MODEL_CALLS_PER_REQUEST` only with a reason.
