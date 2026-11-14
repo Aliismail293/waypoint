@@ -278,6 +278,7 @@ def create_app(
     async def with_review(user: User, plan: Plan) -> dict:
         profile = await load_profile(user)
         rt: WaypointRuntime = state["runtime"]
+        assert rt.deps is not None
         review = await run_in_threadpool(review_plan, plan, profile, rt.deps.catalog)
         # Titles for the cards and source rows for the citation badges, so the page needs no further lookups.
         rows = await run_in_threadpool(rt.deps.catalog.run, "list_courses", {})
