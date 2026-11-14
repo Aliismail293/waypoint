@@ -418,9 +418,10 @@ class WaypointRuntime:
         match = re.match(r"([A-Z]{3}\d{3}[HY]\d)\s+(.*)", parts[-1])
         passage = locate_passage(chunk.text, claim) if claim else None
         if passage:
-            why = f"Pip cited this entry for: “{claim.strip()[:240]}”. The highlighted line shares: {', '.join(passage.matched)}."
+            shared = ", ".join(passage.matched)
+            why = f"Pip cited this entry for: “{claim.strip()[:240]}”. The highlighted line shares: {shared}."
         elif claim:
-            why = "Pip retrieved this entry for the question, but no single line matches the claim closely enough to highlight."
+            why = "Pip retrieved this entry for the question, but no single line matches the claim closely enough."
         else:
             why = "Pip retrieved this entry while searching for your question."
         return {

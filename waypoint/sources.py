@@ -11,8 +11,10 @@ from dataclasses import dataclass
 WORD = re.compile(r"[a-z0-9]+")
 CODE = re.compile(r"\b[A-Z]{3}\d{3}[HY]\d\b")
 STOPWORDS = frozenset(
-    "the and for are you your with that this from into not any all has have had was were will can may must "
-    "does did how what when where which who whose than then them they its it's out per via but also each".split()
+    {"the", "and", "for", "are", "you", "your", "with", "that", "this", "from", "into", "not", "any", "all"}
+    | {"has", "have", "had", "was", "were", "will", "can", "may", "must", "does", "did", "how", "what", "when"}
+    | {"where", "which", "who", "whose", "than", "then", "them", "they", "its", "out", "per", "via", "but"}
+    | {"also", "each"}
 )
 
 
@@ -42,7 +44,7 @@ def locate_passage(text: str, claim: str) -> Passage | None:
             continue
         shared = sorted(claim_terms & _terms(line))
         codes = sum(1 for c in claim_codes if c in line.lower())
-        score = len(shared) + 2 * codes
+        score = float(len(shared) + 2 * codes)
         if score and (best is None or score > best[0]):
             best = (score, start, end, shared)
     if best is None:
