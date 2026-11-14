@@ -91,9 +91,9 @@ def test_tabs_and_phone_width(page, base_url):
     page.goto(base_url)
     skip_onboarding(page)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    page.get_by_role("link", name="My plan").click()
-    page.get_by_role("heading", name="My plan is coming soon").wait_for()
-    assert page.get_by_role("link", name="My plan").get_attribute("aria-current") == "page"
+    page.get_by_role("link", name="History").click()
+    page.get_by_role("heading", name="History is coming soon").wait_for()
+    assert page.get_by_role("link", name="History").get_attribute("aria-current") == "page"
 
 
 def test_onboarding_then_map_route_and_course_page(page, base_url):
@@ -140,3 +140,51 @@ def test_onboarding_then_map_route_and_course_page(page, base_url):
     page.get_by_role("button", name="Really delete everything?").click()
     page.locator("#settings").wait_for(state="hidden")
     assert page.evaluate("fetch('/api/profile').then(r => r.json()).then(p => p.courses.length)") == 0
+
+
+def test_plan_critic_catches_a_broken_prerequisite_and_timetable_fixes_a_clash(page, base_url):
+    page.goto(base_url)
+    skip_onboarding(page)
+    page.evaluate(
+        "fetch('/api/profile', {method: 'PUT', headers: {'Content-Type': 'application/json'},"
+        " body: JSON.stringify({courses: [{code: 'MAT102H5', status: 'done'}], onboarded: true})})"
+    )
+
+    # Chat: "Add MAT224H5 to my plan" creates Plan A (MAT224H5 needs MAT223H5, which the student hasn't got).
+    page.get_by_label("Ask Pip").fill("What are the prerequisites for MAT224H5?")
+    page.get_by_role("button", name="Ask", exact=True).click()
+    page.get_by_role("button", name="Add MAT224H5 to my plan").click()
+    page.get_by_text("Added to Plan A").wait_for()
+
+    page.get_by_role("link", name="My plan").click()
+    page.get_by_text("Critic found problems").wait_for()
+    report = page.get_by_role("complementary", name="Critic report")
+    assert "MAT223H5" in report.inner_text() and "first" in report.inner_text()
+    report.get_by_role("button", name="MAT224H5").first.click()  # the citation opens the Source reader
+    page.get_by_role("complementary", name="Source reader").wait_for()
+    page.keyboard.press("Escape")
+
+    # Fix it: MAT223H5 in the first term, MAT224H5 moved to a later term.
+    page.get_by_label("Add a course to 2026 Fall").fill("MAT223H5")
+    page.get_by_label("Add a course to 2026 Fall").press("Enter")
+    page.get_by_role("button", name="+ Add term").click()
+    page.get_by_label("Move MAT224H5 to").select_option("2027 Winter")
+    page.get_by_text("Checking…").wait_for(state="hidden")
+    page.wait_for_function("!document.querySelector('.report li.error')")
+
+    # Timetable: pick the Tue/Thu MAT224H5 section next to MAT244H5 -> a clash Pip can fix in one click.
+    page.get_by_label("Add a course to 2027 Winter").fill("MAT244H5")
+    page.get_by_label("Add a course to 2027 Winter").press("Enter")
+    page.locator(".plan-card[data-code='MAT244H5']").wait_for()
+    page.get_by_text("Checking…").wait_for(state="hidden")
+    page.get_by_role("link", name="Timetable").click()
+    page.locator("#tt-root .badge", has_text="Sample data").wait_for()
+    page.locator("#tt-term").wait_for()
+    page.locator("#tt-term").select_option("2027 Winter")
+    page.get_by_label("MAT224H5 · Lecture").select_option(label="LEC0102 · Tue, Thu 15:00")
+    page.get_by_text("1 clash found").wait_for()
+    assert "overlap on Tuesday" in page.locator(".pip-card.bad").inner_text()
+    assert page.locator(".tt-block.clash").count() >= 2
+    page.get_by_role("button", name="Switch MAT224H5 to LEC0101").click()
+    page.get_by_text("No clashes").first.wait_for()
+    assert page.locator(".tt-block.clash").count() == 0

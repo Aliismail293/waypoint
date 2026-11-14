@@ -4,6 +4,8 @@ import { claimFor, escapeHtml, renderMarkdown } from "./js/citations.js";
 import { pipSvg } from "./js/pip.js";
 import { showCourse, wireCourse } from "./js/course-view.js";
 import { invalidateMap, showMap, wireMap } from "./js/map-view.js";
+import { invalidatePlans, showPlan, wirePlan } from "./js/plan-view.js";
+import { showTimetable, wireTimetable } from "./js/timetable-view.js";
 import { onProfileChange, openSettings, startOnboarding } from "./js/profile-view.js";
 import { api, authHeaders, canAsk, errorFrom, postJson, session } from "./js/session.js";
 import { initialStream, readEvents, reduce, stepsSummary } from "./js/stream.js";
@@ -18,12 +20,12 @@ const THUMB_DOWN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
 
 // ---- Tabs (hash routes: #/chat, #/map[/CODE], #/course/CODE; plan, timetable and history are "coming soon") ----
 const TABS = { chat: "Chat", map: "Course map", plan: "My plan", timetable: "Timetable", history: "History" };
-const VIEWS = ["chat", "soon", "map", "course"];
+const VIEWS = ["chat", "soon", "map", "course", "plan", "timetable"];
 
 function route() {
   const [, tab = "chat", arg] = location.hash.match(/^#\/(\w+)(?:\/([A-Za-z0-9]+))?/) || [];
   const current = tab === "course" ? "course" : tab in TABS ? tab : "chat";
-  const view = current === "chat" || current === "map" || current === "course" ? current : "soon";
+  const view = ["chat", "map", "course", "plan", "timetable"].includes(current) ? current : "soon";
   for (const v of VIEWS) $(`view-${v}`).hidden = v !== view;
   if (view !== "chat") closeReader();
   if (view === "soon") {
@@ -32,6 +34,8 @@ function route() {
   }
   if (view === "map" && canAsk()) showMap(arg ? arg.toUpperCase() : null);
   if (view === "course" && canAsk() && arg) showCourse(arg.toUpperCase());
+  if (view === "plan" && canAsk()) showPlan();
+  if (view === "timetable" && canAsk()) showTimetable();
   const active = current === "course" ? "map" : current; // course pages hang off the map tab
   document.querySelectorAll(".tabs a").forEach((a) => {
     if (a.dataset.tab === active) a.setAttribute("aria-current", "page");
@@ -64,6 +68,16 @@ function setBusy(busy) {
   $("send").disabled = off;
   $("message").disabled = off;
   document.querySelectorAll(".example").forEach((b) => (b.disabled = off));
+}
+
+// "- **2026 Fall**: MAT224H5, STA256H5" lines in a planner answer -> terms for a new plan.
+function planFromAnswer(text) {
+  const terms = [];
+  for (const m of text.matchAll(/\*\*(\d{4} (?:Fall|Winter|Summer))\*\*:?\s*([^\n]*)/g)) {
+    const courses = m[2].match(/\b[A-Z]{3}\d{3}[HY]\d\b/g) || [];
+    if (courses.length) terms.push({ term: m[1], courses });
+  }
+  return terms;
 }
 
 // ---- Chat turns ----
@@ -167,12 +181,50 @@ function actionsFor(turn) {
   bar.className = "actions";
   const codes = [...new Set(turn.stream.text.match(/\b[A-Z]{3}\d{3}[HY]\d\b/g) || [])];
   const mapBtn = codes.length ? `<a class="btn primary" href="#/map/${escapeHtml(codes[0])}">See it on the course map</a>` : "";
-  const planBtn = codes.length ? `<a class="btn" href="#/plan">Add ${escapeHtml(codes[0])} to my plan</a>` : "";
+  const planBtn = codes.length ? `<button type="button" class="btn" data-add-plan="${escapeHtml(codes[0])}">Add ${escapeHtml(codes[0])} to my plan</button>` : "";
+  const draft = planFromAnswer(turn.stream.text);
+  const draftBtn = draft.length ? `<button type="button" class="btn" data-save-plan>Save as a plan</button>` : "";
   bar.innerHTML =
-    mapBtn + planBtn +
+    mapBtn + planBtn + draftBtn +
     `<a class="btn" id="advisor-${ids.answer_id}" href="${escapeHtml(app.advisorUrl)}" target="_blank" rel="noopener">Ask an advisor</a>` +
     `<span class="feedback"><button type="button" data-rating="1" aria-label="Good answer" aria-pressed="false">${THUMB_UP}</button>` +
     `<button type="button" data-rating="-1" aria-label="Bad answer" aria-pressed="false">${THUMB_DOWN}</button></span>`;
+  const say = (html) => {
+    let line = bar.parentElement.querySelector(".plan-note");
+    if (!line) {
+      line = document.createElement("div");
+      line.className = "meta plan-note";
+      line.setAttribute("role", "status");
+      bar.after(line);
+    }
+    line.innerHTML = html;
+  };
+  const planLink = (plan) => `<a href="#/plan">View ${escapeHtml(plan.name)}</a>`;
+  bar.querySelector("[data-add-plan]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget; // currentTarget is cleared once the handler awaits
+    button.disabled = true;
+    try {
+      const plan = await api("POST", "/api/plans/add-course", { code: button.dataset.addPlan });
+      invalidatePlans();
+      const term = plan.terms.find((t) => t.courses.includes(button.dataset.addPlan))?.term;
+      say(`Added to ${escapeHtml(plan.name)}${term ? ` · ${escapeHtml(term)}` : ""}. ${planLink(plan)}`);
+    } catch (err) {
+      button.disabled = false;
+      say(escapeHtml(err.message));
+    }
+  });
+  bar.querySelector("[data-save-plan]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const plan = await api("POST", "/api/plans", { name: "Plan from chat", terms: draft });
+      invalidatePlans();
+      say(`Saved as ${escapeHtml(plan.name)}. ${planLink(plan)}`);
+    } catch (err) {
+      button.disabled = false;
+      say(escapeHtml(err.message));
+    }
+  });
   bar.querySelectorAll(".feedback button").forEach((button) =>
     button.addEventListener("click", () => {
       bar.querySelectorAll(".feedback button").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
@@ -276,7 +328,7 @@ async function openReader(turn, n, trigger) {
   $("reader-why").textContent = "";
   $("reader-thanks").hidden = true;
   setOfficial(source.url);
-  showSources(turn, sources);
+  if (!turn.plan) showSources(turn, sources);
   panel.querySelector("#reader-close").focus();
   try {
     const claim = claimFor(turn.stream.text, source.chunk_id);
@@ -349,6 +401,13 @@ document.addEventListener("click", (e) => {
   const turn = badge.closest(".turn-pip") ? turnFor(badge) : app.turn;
   if (turn) openReader(turn, Number(badge.dataset.source), badge);
 });
+// The critic report on the plan page opens its citations in the same Source reader.
+window.addEventListener("waypoint:open-source", (e) => {
+  const { sources, chunkId } = e.detail;
+  const turn = { plan: true, stream: { sources, text: "", final: {} } };
+  const source = sources.find((s) => s.chunk_id === chunkId);
+  if (source) openReader(turn, source.n);
+});
 const turns = new WeakMap();
 function turnFor(el) {
   return turns.get(el.closest(".turn-pip")) || app.turn;
@@ -365,7 +424,10 @@ async function checkProfile() {
   }
 }
 
-onProfileChange(() => invalidateMap());
+onProfileChange(() => {
+  invalidateMap();
+  invalidatePlans();
+});
 $("who").addEventListener("click", () => openSettings());
 window.addEventListener("waypoint:ask", (e) => {
   if (location.hash !== "#/chat") location.hash = "#/chat";
@@ -411,5 +473,7 @@ document.querySelectorAll(".example").forEach((b) => b.addEventListener("click",
 window.addEventListener("hashchange", route);
 wireMap();
 wireCourse();
+wirePlan();
+wireTimetable();
 route();
 init();

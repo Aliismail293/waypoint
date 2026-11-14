@@ -35,7 +35,19 @@ from waypoint.course_page import course_page
 from waypoint.graph import build_graph, find_route
 from waypoint.mcp.timetable.adapter import SampleFileSource, TimetableAdapter
 from waypoint.observability.tracing import hash_user
+from waypoint.plans import (
+    Plan,
+    PlanError,
+    PlanStore,
+    PlanTerm,
+    add_course,
+    check_codes_exist,
+    plan_store,
+    review_plan,
+    tidy,
+)
 from waypoint.profile import Profile, ProfileError, ProfileStore, profile_context, profile_store, validate_profile
+from waypoint.timetable_check import timetable_view
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 STATIC = Path(__file__).parent / "static"
@@ -94,6 +106,26 @@ class ProfileRequest(BaseModel):
     onboarded: bool = True
 
 
+class PlanTermBody(BaseModel):
+    term: str = Field(max_length=20)
+    courses: list[str] = Field(default_factory=list, max_length=12)
+
+
+class PlanBody(BaseModel):
+    name: str = Field(default="Plan A", min_length=1, max_length=40)
+    terms: list[PlanTermBody] = Field(default_factory=list, max_length=14)
+
+
+class AddCourseBody(BaseModel):
+    code: str = Field(max_length=12)
+    term: str | None = Field(default=None, max_length=20)
+
+
+class TimetableBody(BaseModel):
+    term: str = Field(max_length=20)
+    section_ids: list[str] = Field(default_factory=list, max_length=40)
+
+
 class DailyLimiter:
     """Per-user daily request cap (in memory, per instance — a cost guard, not a security boundary)."""
 
@@ -113,9 +145,10 @@ def create_app(
     runtime: WaypointRuntime | None = None,
     usage: UsageStore | None = None,
     profiles: ProfileStore | None = None,
+    plans: PlanStore | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
-    state: dict[str, Any] = {"runtime": runtime, "usage": usage, "profiles": profiles}
+    state: dict[str, Any] = {"runtime": runtime, "usage": usage, "profiles": profiles, "plans": plans}
     timetable = TimetableAdapter(SampleFileSource())  # synthetic sample data, labelled wherever it is shown
     limiter = DailyLimiter(settings.max_requests_per_user_per_day)
 
@@ -127,6 +160,8 @@ def create_app(
             state["usage"] = usage_store(settings)
         if state["profiles"] is None:
             state["profiles"] = profile_store(settings)
+        if state["plans"] is None:
+            state["plans"] = plan_store(settings)
         yield
 
     app = FastAPI(title="Waypoint", lifespan=lifespan)
@@ -188,6 +223,7 @@ def create_app(
     @app.delete("/api/profile")
     async def delete_profile(user: User = Depends(current_user)) -> dict:  # noqa: B008
         await run_in_threadpool(state["profiles"].delete, user.user_id)
+        await run_in_threadpool(state["plans"].delete, user.user_id)
         return {"ok": True}
 
     @app.get("/api/courses")
@@ -224,6 +260,118 @@ def create_app(
         profile = await load_profile(user)
         graph = await run_in_threadpool(build_graph, state["runtime"].deps.catalog, profile)
         return find_route(graph, code, profile)
+
+    # ---- plans, critic report, timetable ----
+
+    async def load_plans(user: User) -> list[Plan]:
+        return await run_in_threadpool(state["plans"].get, user.user_id)
+
+    def find_plan(plans: list[Plan], plan_id: str) -> Plan:
+        found = next((p for p in plans if p.id == plan_id), None)
+        if found is None:
+            raise HTTPException(status_code=404, detail="That plan doesn't exist.")
+        return found
+
+    async def save_plans(user: User, plans: list[Plan]) -> None:
+        await run_in_threadpool(state["plans"].put, user.user_id, plans)
+
+    async def with_review(user: User, plan: Plan) -> dict:
+        profile = await load_profile(user)
+        rt: WaypointRuntime = state["runtime"]
+        review = await run_in_threadpool(review_plan, plan, profile, rt.deps.catalog)
+        # Titles for the cards and source rows for the citation badges, so the page needs no further lookups.
+        rows = await run_in_threadpool(rt.deps.catalog.run, "list_courses", {})
+        wanted = {c for t in plan.terms for c in t.courses}
+        titles = {r["code"]: r["title"] for r in rows if r["code"] in wanted}
+        chunk_ids = sorted({c for item in review["items"] for c in item["chunk_ids"]})
+        sources = await run_in_threadpool(rt.source_rows, chunk_ids)
+        return {**plan.model_dump(), "review": review, "titles": titles, "sources": sources}
+
+    @app.get("/api/plans")
+    async def list_plans(user: User = Depends(current_user)) -> dict:  # noqa: B008
+        plans = await load_plans(user)
+        return {"plans": [await with_review(user, p) for p in plans]}
+
+    @app.post("/api/plans")
+    async def create_plan(body: PlanBody, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        plans = await load_plans(user)
+        if len(plans) >= 6:
+            raise HTTPException(status_code=422, detail="That's the maximum of 6 plans. Delete one first.")
+        try:
+            plan = tidy(Plan(name=body.name, terms=[PlanTerm(**t.model_dump()) for t in body.terms]))
+            await run_in_threadpool(check_codes_exist, plan, state["runtime"].deps.catalog)
+        except PlanError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        await save_plans(user, [*plans, plan])
+        return await with_review(user, plan)
+
+    @app.put("/api/plans/{plan_id}")
+    async def update_plan(plan_id: str, body: PlanBody, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        plans = await load_plans(user)
+        old = find_plan(plans, plan_id)
+        try:
+            new = tidy(
+                Plan(
+                    id=old.id,
+                    name=body.name,
+                    terms=[PlanTerm(**t.model_dump()) for t in body.terms],
+                    timetable=old.timetable,
+                )
+            )
+            await run_in_threadpool(check_codes_exist, new, state["runtime"].deps.catalog)
+        except PlanError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        await save_plans(user, [new if p.id == plan_id else p for p in plans])
+        return await with_review(user, new)
+
+    @app.delete("/api/plans/{plan_id}")
+    async def delete_plan(plan_id: str, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        plans = await load_plans(user)
+        find_plan(plans, plan_id)
+        await save_plans(user, [p for p in plans if p.id != plan_id])
+        return {"ok": True}
+
+    @app.post("/api/plans/{plan_id}/duplicate")
+    async def duplicate_plan(plan_id: str, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        plans = await load_plans(user)
+        old = find_plan(plans, plan_id)
+        if len(plans) >= 6:
+            raise HTTPException(status_code=422, detail="That's the maximum of 6 plans. Delete one first.")
+        letter = chr(ord("A") + len(plans)) if len(plans) < 26 else "Z"
+        copy = old.model_copy(deep=True, update={"id": Plan().id, "name": f"Plan {letter}"})
+        await save_plans(user, [*plans, copy])
+        return await with_review(user, copy)
+
+    @app.post("/api/plans/add-course")
+    async def add_to_plan(body: AddCourseBody, plan_id: str = "", user: User = Depends(current_user)) -> dict:  # noqa: B008
+        """Chat's "Add MAT224H5 to my plan": into the given plan (or the first, creating Plan A if none)."""
+        plans = await load_plans(user)
+        profile = await load_profile(user)
+        plan = find_plan(plans, plan_id) if plan_id else (plans[0] if plans else Plan())
+        try:
+            updated = await run_in_threadpool(
+                add_course, plan, body.code, body.term, profile, state["runtime"].deps.catalog
+            )
+        except PlanError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        await save_plans(user, [updated if p.id == updated.id else p for p in plans] if plans else [updated])
+        return await with_review(user, updated)
+
+    @app.get("/api/plans/{plan_id}/timetable")
+    async def plan_timetable(plan_id: str, term: str, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        plan = find_plan(await load_plans(user), plan_id)
+        courses = next((t.courses for t in plan.terms if t.term == term), [])
+        return await run_in_threadpool(timetable_view, timetable, courses, term, plan.timetable.get(term, []))
+
+    @app.put("/api/plans/{plan_id}/timetable")
+    async def choose_sections(plan_id: str, body: TimetableBody, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        plans = await load_plans(user)
+        plan = find_plan(plans, plan_id)
+        courses = next((t.courses for t in plan.terms if t.term == body.term), [])
+        view = await run_in_threadpool(timetable_view, timetable, courses, body.term, body.section_ids)
+        plan.timetable[body.term] = [c["section_id"] for c in view["chosen"]]
+        await save_plans(user, plans)
+        return view
 
     @app.post("/api/source")
     async def source(body: SourceRequest, user: User = Depends(current_user)) -> dict:  # noqa: B008

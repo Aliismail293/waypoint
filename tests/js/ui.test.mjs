@@ -196,3 +196,36 @@ test("linkCourseCodes: links codes in text, never inside tags", () => {
 test("renderMarkdown links course codes", () => {
   assert.match(renderMarkdown("**MAT224H5** needs MAT223H5", new Map()), /href="#\/course\/MAT223H5"/);
 });
+
+// ---- Stage 4: timetable grid ----
+import { gridBlocks, blockStyle, toMinutes } from "../../waypoint/api/static/js/timetable.js";
+
+const sec = (id, course, type, number, meetings) => ({ section_id: id, course, type, number, meetings });
+const m = (day, start, end) => ({ day, start, end, room: null });
+
+test("gridBlocks: one block per meeting, in the right day column, weekends dropped", () => {
+  const blocks = gridBlocks([sec("a", "MAT224H5", "Lecture", "0101", [m("Tuesday", "13:00", "15:00"), m("Thursday", "13:00", "14:00"), m("Saturday", "10:00", "11:00")])]);
+  assert.deepEqual(blocks.map((b) => [b.day, b.start, b.end]), [[1, 780, 900], [3, 780, 840]]);
+  assert.equal(toMinutes("13:30"), 810);
+});
+
+test("gridBlocks: overlapping meetings share the day's width and are flagged as clashes", () => {
+  const chosen = [
+    sec("a", "MAT224H5", "Lecture", "0101", [m("Tuesday", "13:00", "15:00")]),
+    sec("b", "MAT232H5", "Lecture", "0101", [m("Tuesday", "14:00", "16:00")]),
+    sec("c", "MAT244H5", "Lecture", "0101", [m("Tuesday", "16:00", "17:00")]), // starts when the others end: full width
+  ];
+  const blocks = gridBlocks(chosen, [{ a: "a", b: "b" }]);
+  const [a, b, c] = blocks;
+  assert.deepEqual([a.cols, b.cols, a.col, b.col], [2, 2, 0, 1]);
+  assert.equal(c.cols, 1);
+  assert.ok(a.clash && b.clash && !c.clash);
+  assert.notEqual(a.edge, b.edge); // each course has its own colour
+  assert.match(blockStyle(a), /left:calc\(0% \+ 2px\);width:calc\(50% - 4px\)/);
+  assert.match(blockStyle(b), /left:calc\(50% \+ 2px\)/);
+});
+
+test("blockStyle: position follows the clock (8:00 is the top of the grid)", () => {
+  const [b] = gridBlocks([sec("a", "X", "Lecture", "1", [m("Monday", "09:00", "11:00")])]);
+  assert.match(blockStyle(b), /top:48px;height:94px/);
+});
