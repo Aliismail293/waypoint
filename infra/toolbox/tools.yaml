@@ -71,6 +71,22 @@ description: "Every program in Waypoint's data: code, name, type, area."
 statement: |
   SELECT code, name, program_type, area FROM `waypoint-513003.waypoint`.programs ORDER BY code
 ---
+kind: tool
+name: list_courses
+type: bigquery-sql
+source: waypoint-bigquery
+description: "Every course in Waypoint's data: code, title, level, credits."
+statement: |
+  SELECT code, title, level, credits FROM `waypoint-513003.waypoint`.courses ORDER BY code
+---
+kind: tool
+name: prerequisite_edges
+type: bigquery-sql
+source: waypoint-bigquery
+description: "Every prerequisite link in Waypoint's data: course_code requires required_code."
+statement: |
+  SELECT course_code, required_code FROM `waypoint-513003.waypoint`.prerequisites ORDER BY course_code, required_code
+---
 kind: toolset
 name: waypoint_catalog
 tools:
@@ -79,3 +95,5 @@ tools:
   - courses_unlocked_by
   - get_program
   - list_programs
+  - list_courses
+  - prerequisite_edges

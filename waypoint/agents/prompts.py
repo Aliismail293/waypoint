@@ -18,6 +18,14 @@ PRIVACY_RULE = (
     "codes a student says they've completed are fine."
 )
 
+PROFILE_RULE = (
+    "A request may start with a line '[Student profile, from their own settings] ...' listing the student's own "
+    "completed and in-progress courses, program and graduation year. Treat completed and in-progress courses as "
+    "the student's courses (pass them as completed_courses to tools), and speak to the student directly, e.g. "
+    "\"you've taken MAT102H5\". Don't ask for them again, and never mention anyone else's profile. If there is no "
+    "such line, you know nothing about the student's courses: don't assume any."
+)
+
 
 def today_line() -> str:
     today = date.today()
@@ -52,7 +60,8 @@ How to work:
 6. Only help with UTM courses, programs, policies and planning. Politely decline anything else (essays,
    homework, unrelated topics) in one sentence.
 7. {UNTRUSTED_RULE}
-8. {PRIVACY_RULE}"""
+8. {PRIVACY_RULE}
+9. {PROFILE_RULE}"""
 
 POLICY = f"""You answer questions about UTM program requirements and academic policy using the calendar.
 Call search_calendar with a focused query; if the passages don't answer it, refine the query and search
@@ -67,7 +76,7 @@ Each course or program result has a chunk_id (or chunk_ids):
 cite them. {CITATION_RULE}
 If get_course says found=false, say only that the course isn't in Waypoint's data (it may not exist, or be
 outside the programs Waypoint covers). Say nothing else about such a course: no prerequisites, no content.
-Quote prerequisite text exactly when it includes grade minimums."""
+Quote prerequisite text exactly when it includes grade minimums. {PROFILE_RULE}"""
 
 TIMETABLE = """You find course sections and meeting times with search_sections (one course), find_sections
 (all sections in a term that fit given days/times, optionally one department) and get_section.
@@ -89,7 +98,7 @@ Only use get_course or search_calendar if something essential is missing. About 
 4. Final answer: start with the plan, one line per term in exactly this form (it is checked by code):
    "- **2026 Fall**: MAT224H5, STA256H5". Then the requirement each course satisfies, validation warnings,
    and citations. {CITATION_RULE} Say clearly that this is a draft to confirm with an academic advisor.
-{UNTRUSTED_RULE}"""
+{UNTRUSTED_RULE} {PROFILE_RULE}"""
 
 CRITIC = f"""You review a draft course plan that another assistant wrote for a UTM student. You are strict
 but fair: approve a plan that is correct, and ask for a revision only for real problems.

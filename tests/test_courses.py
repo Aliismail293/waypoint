@@ -56,7 +56,8 @@ def test_prerequisite_evaluation(text, done, status):
 def test_only_allow_listed_queries():
     with pytest.raises(ValueError):
         InMemoryCatalog().run("DROP TABLE courses", {})
-    assert all("@" in sql or name == "list_programs" for name, sql in NAMED_QUERIES.items())
+    no_params = {"list_programs", "list_courses", "prerequisite_edges"}
+    assert all("@" in sql or name in no_params for name, sql in NAMED_QUERIES.items())
 
 
 @pytest.mark.parametrize(
@@ -67,6 +68,8 @@ def test_only_allow_listed_queries():
         ("courses_unlocked_by", {"code": "MAT224"}),
         ("get_program", {"code": "ERMAJ2511", "pattern": "%"}),
         ("list_programs", {}),
+        ("list_courses", {}),
+        ("prerequisite_edges", {}),
     ],
 )
 def test_in_memory_catalog_returns_same_columns_as_sql(name, params):

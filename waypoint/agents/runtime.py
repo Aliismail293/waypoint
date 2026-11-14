@@ -467,10 +467,10 @@ class WaypointRuntime:
         key = cache_key(text, self.cache.version(), context)
         return key, self.cache.get(key)
 
-    async def ask(self, user_id: str, text: str, session_id: str | None = None) -> Answer:
+    async def ask(self, user_id: str, text: str, session_id: str | None = None, context: str = "") -> Answer:
         """Non-streaming entry point: drains `ask_stream` and returns the final Answer."""
         answer: Answer | None = None
-        async for kind, data in self.ask_stream(user_id, text, session_id):
+        async for kind, data in self.ask_stream(user_id, text, session_id, context):
             if kind == "final":
                 answer = data
             elif kind == "error":
@@ -554,7 +554,9 @@ class WaypointRuntime:
                         final_text = hit.text
                         self._stream_text(record, final_text)
                     else:
-                        final_text = await self._run(user_id, session.id, text, record, len(session.events) > 0)
+                        final_text = await self._run(
+                            user_id, session.id, text, record, len(session.events) > 0, context
+                        )
             finally:
                 current_record.reset(token)
             latency_ms = (time.perf_counter() - started) * 1000
@@ -612,7 +614,9 @@ class WaypointRuntime:
         }.get(decision.category)
         return key if key in self.fast_runners else None
 
-    async def _run(self, user_id: str, session_id: str, text: str, record: RequestRecord, has_history: bool) -> str:
+    async def _run(
+        self, user_id: str, session_id: str, text: str, record: RequestRecord, has_history: bool, context: str = ""
+    ) -> str:
         running = {"step": "route", "id": "route", "label": "Understanding your question", "state": "running"}
         record.send("status", running)
         decision = await self._route(text, has_history)
@@ -633,7 +637,9 @@ class WaypointRuntime:
         final_text = ""
         streamed = ""
         try:
-            message = types.Content(role="user", parts=[types.Part(text=text)])
+            # The student's own profile rides along with this one request (the router and cache see only the question).
+            sent = f"[Student profile, from their own settings] {context}\n\n{text}" if context else text
+            message = types.Content(role="user", parts=[types.Part(text=sent)])
             run_config = RunConfig(
                 max_llm_calls=self.settings.max_model_calls_per_request,
                 telemetry=self._telemetry,

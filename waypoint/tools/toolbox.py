@@ -28,6 +28,8 @@ TOOL_DESCRIPTIONS = {
     "courses_unlocked_by": "Courses that list the given course code among their prerequisites.",
     "get_program": "A program by exact code or by a LIKE pattern on its name, with completion requirements.",
     "list_programs": "Every program in Waypoint's data: code, name, type, area.",
+    "list_courses": "Every course in Waypoint's data: code, title, level, credits.",
+    "prerequisite_edges": "Every prerequisite link in Waypoint's data: course_code requires required_code.",
 }
 PARAM_DESCRIPTIONS = {
     "code": "Course or program code, upper case, e.g. MAT224 or ERMAJ2511.",

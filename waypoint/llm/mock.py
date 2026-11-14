@@ -35,6 +35,7 @@ ROUTING_RULES: list[tuple[str, str]] = [
     ("course_data_agent", r"[A-Z]{3}\d{3}|prerequisite|prereq|exclusion|course"),
     ("policy_agent", r".*"),
     ("search_sections", r".*"),
+    ("check_course_prerequisites", r"can i take|eligible|ready for"),
     ("get_course", r"[A-Z]{3}\d{3}"),
     ("search_courses", r".*"),
     ("search_calendar", r".*"),
@@ -125,7 +126,9 @@ def _fill_args(tool: Any, user_text: str) -> dict[str, Any]:
     names = list(schema.properties or {}) if schema else []
     if not names and declaration and declaration.parameters_json_schema:
         names = list(declaration.parameters_json_schema.get("properties", {}))
-    code = COURSE_CODE.search(user_text)
+    # the course asked about is in the question, not in the student-profile line in front of it
+    question = user_text.split("\n\n", 1)[1] if user_text.startswith("[Student profile") else user_text
+    code = COURSE_CODE.search(question)
     args: dict[str, Any] = {}
     for name in names:
         if name in ("course", "code", "course_code"):
@@ -135,7 +138,9 @@ def _fill_args(tool: Any, user_text: str) -> dict[str, Any]:
         elif name in ("query", "request", "question", "keyword"):
             args[name] = user_text
         elif name == "completed_courses":
-            args[name] = []
+            # the student's profile line, when the request carries one
+            line = re.search(r"Courses (?:completed|in progress): ([^.]*)\.", user_text)
+            args[name] = re.findall(r"[A-Z]{3}\d{3}[HY]\d", line.group(1)) if line else []
     return args
 
 
