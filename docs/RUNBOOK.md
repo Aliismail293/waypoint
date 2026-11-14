@@ -115,6 +115,38 @@ by the Google `sub`.
 2. Delete their ADK sessions in Firestore.
 3. Delete the usage events whose `user` matches the hash.
 
+## Yearly calendar update
+
+U of T publishes new calendars each spring. About once a year:
+1. Set `WAYPOINT_CRAWLER_CONTACT` (a contact address; never commit it). Check each calendar site's robots.txt and
+   terms still allow public crawling. If a site answers 403/429 the fetcher stops and writes `_BLOCKED.json`; do not
+   work around it, log it and ask for another source.
+2. `uv run python -m waypoint.ingest fetch` (one request per 2 s per host, pages cached in `data/raw/uoft/<campus>`).
+3. `uv run python -m waypoint.ingest build-v3`. Read the coverage per campus and subject and the prerequisite
+   parser's "fully parsed" percentage. The unparsed list is what to fix next (add a golden case in
+   `tests/data/prereq_golden.json`, then fix the parser).
+4. `uv run pytest` (offline), then `uv run python evals/fact_eval.py`.
+5. Re-run the policy eval (`evals/README.md`, V3 section) and update the README table and `evals/ci_baseline.json`.
+6. Load the data to the cloud stores (`pgvector --prune`, `bigquery`), deploy as a tagged no-traffic revision, check
+   it, then move traffic.
+7. Set `calendar_year` once the page states it. Waypoint never guesses it.
+
+## Pause and resume to save money
+
+Cloud Run already scales to zero (`--min-instances 0`), so an idle app costs nearly nothing. The standing cost is
+the Cloud SQL instance `waypoint-db`.
+
+Pause (the app answers from its baked-in data; semantic search over policy text stops):
+```bash
+gcloud sql instances patch waypoint-db --activation-policy NEVER --project waypoint-513003
+```
+Resume:
+```bash
+gcloud sql instances patch waypoint-db --activation-policy ALWAYS --project waypoint-513003
+```
+To take the whole app offline instead, use "Take the service offline fast" above. Resume by adding the invoker
+binding back (`add-iam-policy-binding ... --member=allUsers --role=roles/run.invoker`).
+
 ## Safety
 
 - The safety suite runs in CI (offline guard checks) and before releases with live model checks:

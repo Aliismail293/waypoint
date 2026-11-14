@@ -32,7 +32,7 @@ from starlette.concurrency import run_in_threadpool
 from waypoint.agents.runtime import WaypointRuntime
 from waypoint.analytics import UsageEvent, UsageStore, new_answer_id, question_event, summarise, usage_store
 from waypoint.api.auth import User, authenticate
-from waypoint.config import Settings, get_settings
+from waypoint.config import Settings, check_model_ids, get_settings
 from waypoint.course_page import course_page
 from waypoint.coursemap import ancestors, build_map
 from waypoint.datastore import get_store
@@ -174,6 +174,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):  # build the agent tree once per container, not per request
+        check_model_ids(settings)
         if state["runtime"] is None:
             state["runtime"] = WaypointRuntime.from_settings(settings)
         if state["usage"] is None:

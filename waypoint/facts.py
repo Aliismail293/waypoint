@@ -224,7 +224,7 @@ def _unlocks(course: dict[str, Any], store: DataStore, ids: list[str], *_: Any) 
     shown = required[:MAX_LISTED]
     for other in shown:
         _cite(store.courses[other], ids)
-    more = f", and {len(required) - MAX_LISTED} more" if len(required) > MAX_LISTED else ""
+    more = f", and {len(required) - MAX_LISTED} more (the Course map lists them all)" if len(required) > MAX_LISTED else ""
     return f"These courses list {code} in their prerequisites: {', '.join(shown)}{more}{cite}."
 
 

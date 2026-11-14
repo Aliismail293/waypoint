@@ -30,8 +30,10 @@ gcloud run deploy "$SERVICE" ${TRAFFIC_FLAGS[@]+"${TRAFFIC_FLAGS[@]}"} \
   --set-env-vars "^@^WAYPOINT_LLM=vertex@WAYPOINT_EMBEDDINGS=vertex@WAYPOINT_STORE=pgvector@WAYPOINT_CATALOG=bigquery@WAYPOINT_SESSIONS=firestore@WAYPOINT_ANSWER_CACHE=firestore@WAYPOINT_CLOUD_TRACE=true@WAYPOINT_DB_HOST=/cloudsql/$SQL_INSTANCE@WAYPOINT_GOOGLE_CLIENT_ID=$CLIENT_ID@WAYPOINT_GCP_PROJECT=$P"
 
 if [ -n "$TAG" ]; then
-  gcloud run services describe "$SERVICE" --project "$P" --region "$REGION" \
-    --format "value(status.traffic.filter(tag=$TAG).url)" || true
+  # status.traffic is a list; read it as JSON and pick the entry with this tag (the gcloud filter() projection
+  # returned nothing for it).
+  gcloud run services describe "$SERVICE" --project "$P" --region "$REGION" --format json \
+    | python3 -c 'import json,sys; t=sys.argv[1]; print(next((x.get("url","") for x in json.load(sys.stdin)["status"]["traffic"] if x.get("tag")==t), ""))' "$TAG"
 else
   gcloud run services describe "$SERVICE" --project "$P" --region "$REGION" --format 'value(status.url)'
 fi
