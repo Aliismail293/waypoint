@@ -59,18 +59,71 @@ function renderAnswer(data) {
   return html;
 }
 
+// Reads a Server-Sent Events response and calls onEvent(name, data) for each event as it arrives.
+async function readEvents(response, onEvent) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) >= 0) {
+      const block = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      const name = (block.match(/^event: (.*)$/m) || [])[1];
+      const data = (block.match(/^data: (.*)$/m) || [])[1];
+      if (name && data) onEvent(name, JSON.parse(data));
+    }
+  }
+}
+
+// Streamed text may end mid-citation ("[cal:abc#d"): hide citation markers until the final text swaps them for numbers.
+function stripCitations(text) {
+  return text.replace(/\[cal:[^\]]*\]?/g, "").replace(/\[c(?:a(?:l:?)?)?$/, "");
+}
+
 async function ask(message) {
   addMessage("user", escapeHtml(message));
-  const pending = addMessage("bot thinking", "Checking the calendar…");
+  const pending = addMessage("bot", '<ul class="steps"></ul><div class="streamed"></div>');
+  const steps = pending.querySelector(".steps");
+  const streamed = pending.querySelector(".streamed");
+  const stepItems = new Map();
+  let text = "";
   setBusy(true);
   try {
-    const response = await fetch("/api/chat", {
+    const response = await fetch("/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${state.idToken}` },
       body: JSON.stringify({ message, session_id: state.sessionId }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || `Request failed (${response.status})`);
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.detail || `Request failed (${response.status})`);
+    }
+    let finalData = null;
+    await readEvents(response, (name, data) => {
+      if (name === "status") {
+        let item = stepItems.get(data.id || data.step);
+        if (!item) {
+          item = document.createElement("li");
+          steps.appendChild(item);
+          stepItems.set(data.id || data.step, item);
+        }
+        item.className = data.state;
+        item.textContent = (data.state === "done" ? "✓ " : "… ") + data.label + (data.ms ? ` (${(data.ms / 1000).toFixed(1)} s)` : "");
+      } else if (name === "token") {
+        text += data.text;
+        streamed.innerHTML = renderMarkdown(stripCitations(text), new Map());
+      } else if (name === "final") {
+        finalData = data;
+      } else if (name === "error") {
+        throw new Error(data.message);
+      }
+    });
+    if (!finalData) throw new Error("The answer stream ended early. Please try again.");
+    const data = { answer: finalData.answer, citations: finalData.citations, session_id: finalData.session_id, answer_id: finalData.answer_id, metrics: finalData.metrics };
     state.sessionId = data.session_id;
     pending.className = "msg bot";
     pending.innerHTML = renderAnswer(data);
