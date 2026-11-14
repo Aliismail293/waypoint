@@ -11,16 +11,18 @@ Endpoints
 - GET  /healthz          liveness
 """
 
+import json
 import logging
 import time
 from collections import defaultdict
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -34,6 +36,10 @@ from waypoint.observability.tracing import hash_user
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 STATIC = Path(__file__).parent / "static"
 MAX_MESSAGE_CHARS = 2000
+
+
+def sse(event: str, data: Any) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 class ChatRequest(BaseModel):
@@ -138,6 +144,53 @@ def create_app(
             session_id=answer.session_id,
             answer_id=answer_id,
             metrics=metrics,
+        )
+
+    @app.post("/api/chat/stream")
+    async def chat_stream(body: ChatRequest, user: User = Depends(current_user)) -> StreamingResponse:  # noqa: B008
+        """Server-Sent Events (DESIGN_SPEC section 6): status, sources, token, final, done, or error."""
+        limiter.check(user.user_id)
+        rt: WaypointRuntime = state["runtime"]
+
+        async def events() -> AsyncIterator[str]:
+            async for kind, data in rt.ask_stream(user.user_id, body.message, body.session_id):
+                if kind == "final":
+                    answer = data
+                    metrics = answer.metrics()
+                    answer_id = new_answer_id()
+                    await run_in_threadpool(
+                        record_usage, question_event(user.user_id, answer.session_id, answer_id, metrics)
+                    )
+                    citations = [Citation(**c).model_dump() for c in rt.citation_sources(answer.citations)]
+                    # `final` carries the checked text (invalid citations removed, PII redacted): the UI swaps it in.
+                    yield sse(
+                        "final",
+                        {
+                            "answer": answer.text,
+                            "citations": citations,
+                            "session_id": answer.session_id,
+                            "answer_id": answer_id,
+                            "metrics": metrics,
+                        },
+                    )
+                    yield sse(
+                        "done",
+                        {
+                            "ttft_ms": metrics["ttft_ms"],
+                            "total_ms": metrics["total_ms"],
+                            "model_calls": metrics["model_calls"],
+                            "route": metrics["route"],
+                            "category": metrics["category"],
+                        },
+                    )
+                else:
+                    yield sse(kind, data)
+
+        # No buffering anywhere on the way: Cloud Run and nginx-style proxies honour these headers.
+        return StreamingResponse(
+            events(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
         )
 
     def record_usage(event: UsageEvent) -> None:

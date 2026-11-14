@@ -17,7 +17,7 @@ def test_cost_model():
 
 async def test_request_span_and_llm_spans_carry_metrics(spans):
     exporter = spans
-    runtime = WaypointRuntime.from_settings(Settings(llm="mock", embeddings="mock"))
+    runtime = WaypointRuntime.from_settings(Settings(llm="mock", embeddings="mock", router="off"))
     answer = await runtime.ask("student@example.com", "What are the prerequisites for MAT224?")
     spans = exporter.get_finished_spans()
     request = next(s for s in spans if s.name == "waypoint.request")

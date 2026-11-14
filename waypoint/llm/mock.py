@@ -67,6 +67,10 @@ class MockLlm(BaseLlm):
             candidates_token_count=estimate_tokens(output_text),
             total_token_count=estimate_tokens(prompt_text) + estimate_tokens(output_text),
         )
+        if stream and response.content and response.content.parts and response.content.parts[0].text:
+            # Like Gemini: word-sized partial chunks, then the complete (non-partial) response with usage.
+            for piece in re.findall(r"\S+\s*", response.content.parts[0].text):
+                yield LlmResponse(content=types.Content(role="model", parts=[types.Part(text=piece)]), partial=True)
         yield response
 
     def _respond(self, llm_request: LlmRequest) -> LlmResponse:
