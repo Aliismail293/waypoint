@@ -10,7 +10,8 @@ planner builds a plan that deterministic code checks. Every factual claim cites 
 came from, and every request is traced with tokens, cost and latency.
 
 **Status: v0.3 (Phase 3: deployed).** Live URL: <https://waypoint-48349810745.us-central1.run.app>
-(sign in with Google). Second deployment, a labelled demo built with fde-kit:
+(sign in with Google). A short Firebase Hosting address in front of it is set up in `firebase.json` but not yet
+live; see [infra/HOSTING.md](infra/HOSTING.md). Second deployment, a labelled demo built with fde-kit:
 <https://fdekit-demo-48349810745.us-central1.run.app>. Users: [TBD]. The calendar corpus currently covers
 the Mathematical Sciences section (4 programs, 59 MAT courses). Timetable data is **synthetic sample data**
 (see [Data sources](#data-sources)).

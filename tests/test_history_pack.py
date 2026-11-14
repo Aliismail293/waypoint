@@ -224,3 +224,17 @@ def test_pack_pdf_and_email_contain_only_the_students_own_data(client):
     assert (
         client.post("/api/pack/email", json={"include_pinned": False}, headers=H("ana")).json()["text"].count("Q:") == 0
     )
+
+
+def test_cors_is_off_by_default_and_limited_to_the_listed_origins():
+    def preflight(cors):
+        settings = Settings(**OFFLINE, google_client_id="cid", cors_origins=cors)
+        with TestClient(create_app(settings, WaypointRuntime.from_settings(settings))) as c:
+            return c.options(
+                "/api/history",
+                headers={"Origin": "https://site.web.app", "Access-Control-Request-Method": "GET"},
+            )
+
+    assert "access-control-allow-origin" not in preflight("").headers
+    assert preflight("https://site.web.app").headers["access-control-allow-origin"] == "https://site.web.app"
+    assert "access-control-allow-origin" not in preflight("https://other.web.app").headers

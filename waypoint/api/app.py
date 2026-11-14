@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -188,6 +189,14 @@ def create_app(
         yield
 
     app = FastAPI(title="Waypoint", lifespan=lifespan)
+    origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    if origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_methods=["GET", "POST", "PUT", "DELETE"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
     def current_user(request: Request) -> User:

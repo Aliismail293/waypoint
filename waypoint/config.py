@@ -87,6 +87,10 @@ class Settings(BaseSettings):
     # Sessions: "memory" (tests/local) or "firestore".
     sessions: str = "memory"
 
+    # Comma-separated browser origins allowed to call the API cross-origin (e.g. https://SITE.web.app). Empty = no CORS,
+    # which is right when Firebase Hosting rewrites /api to Cloud Run (same origin) or the app is served directly.
+    cors_origins: str = ""
+
     advisor_url: str = "https://www.utm.utoronto.ca/academic-advising-career-centre/"
 
     @property
