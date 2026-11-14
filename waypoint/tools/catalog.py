@@ -32,6 +32,10 @@ NAMED_QUERIES: dict[str, str] = {
     "course_codes, source_url, chunk_ids FROM `{dataset}`.programs "
     "WHERE code = @code OR LOWER(name) LIKE @pattern ORDER BY code LIMIT 3",
     "list_programs": "SELECT code, name, program_type, area FROM `{dataset}`.programs ORDER BY code",
+    # The course map and autocomplete read these two: the whole (small) catalog and every prerequisite link.
+    "list_courses": "SELECT code, title, level, credits FROM `{dataset}`.courses ORDER BY code",
+    "prerequisite_edges": "SELECT course_code, required_code FROM `{dataset}`.prerequisites "
+    "ORDER BY course_code, required_code",
 }
 
 
@@ -95,6 +99,14 @@ class InMemoryCatalog:
             columns += ["course_codes", "source_url", "chunk_ids"]
             return [{k: p[k] for k in columns} for p in self.programs if p["code"] == code or like.search(p["name"])][
                 :3
+            ]
+        if name == "list_courses":
+            return [{k: c[k] for k in ("code", "title", "level", "credits")} for c in self.courses]
+        if name == "prerequisite_edges":
+            return [
+                {"course_code": c["code"], "required_code": req}
+                for c in self.courses
+                for req in c["prerequisite_codes"]
             ]
         return [{k: p[k] for k in ("code", "name", "program_type", "area")} for p in self.programs]
 

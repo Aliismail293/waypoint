@@ -92,6 +92,24 @@ def percentile(values: list[float], pct: float) -> float:
     return ordered[index]
 
 
+def by_route(rows: list[dict]) -> dict[str, dict]:
+    """TTFT and total latency percentiles per route (fast / full / cache), for the V2 before/after table."""
+    out: dict[str, dict] = {}
+    for route in sorted({r.get("route", "full") for r in rows}):
+        group = [r for r in rows if r.get("route", "full") == route]
+        ttft = [r["ttft_ms"] for r in group if "ttft_ms" in r]
+        total = [r["latency_ms"] for r in group]
+        out[route] = {
+            "n": len(group),
+            "ttft_p50_ms": round(percentile(ttft, 50), 1),
+            "ttft_p95_ms": round(percentile(ttft, 95), 1),
+            "total_p50_ms": round(percentile(total, 50), 1),
+            "total_p95_ms": round(percentile(total, 95), 1),
+            "mean_model_calls": round(statistics.fmean(r.get("model_calls", 0) for r in group), 2),
+        }
+    return out
+
+
 def cmd_generate(args: argparse.Namespace) -> None:
     from ragaudit.cli_v2 import run_generate
 
@@ -145,6 +163,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     rows = [json.loads(line) for line in metrics_log.read_text().splitlines()] if metrics_log.exists() else []
     latencies = [r["latency_ms"] for r in rows]
     costs = [r.get("cost_usd", 0.0) for r in rows]
+    ttfts = [r["ttft_ms"] for r in rows if "ttft_ms" in r]
     report = {
         "name": args.name,
         "created_at": datetime.now(UTC).isoformat(),
@@ -163,6 +182,9 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
         "judge_failures": summary.judge_failures,
         "p50_latency_ms": round(percentile(latencies, 50), 1),
         "p95_latency_ms": round(percentile(latencies, 95), 1),
+        "ttft_p50_ms": round(percentile(ttfts, 50), 1),
+        "ttft_p95_ms": round(percentile(ttfts, 95), 1),
+        "by_route": by_route(rows),
         "mean_cost_per_query_usd": round(statistics.fmean(costs), 5) if costs else 0.0,
         "total_agent_cost_usd": round(sum(costs), 4),
         "mean_model_calls": round(statistics.fmean(r.get("model_calls", 0) for r in rows), 2) if rows else 0.0,
@@ -185,8 +207,14 @@ def markdown_table(r: dict) -> str:
         f"| Pass rate (hit AND correct) | {r['pass_rate']:.1%} |\n"
         f"| MRR | {r['mrr']:.3f} |\n"
         f"| P50 / P95 latency | {r['p50_latency_ms'] / 1000:.1f} s / {r['p95_latency_ms'] / 1000:.1f} s |\n"
+        f"| TTFT P50 / P95 | {r['ttft_p50_ms'] / 1000:.1f} s / {r['ttft_p95_ms'] / 1000:.1f} s |\n"
         f"| Cost per query (agent, est.) | ${r['mean_cost_per_query_usd']:.4f} |\n"
         f"| Mean model calls per query | {r['mean_model_calls']} |\n"
+        + "".join(
+            f"| route `{route}` (n={g['n']}): TTFT P50/P95, total P95 | "
+            f"{g['ttft_p50_ms'] / 1000:.1f} / {g['ttft_p95_ms'] / 1000:.1f} s, {g['total_p95_ms'] / 1000:.1f} s |\n"
+            for route, g in r.get("by_route", {}).items()
+        )
     )
 
 

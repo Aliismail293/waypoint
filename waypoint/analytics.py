@@ -14,7 +14,7 @@ from typing import Any, Literal, Protocol
 from waypoint.config import Settings
 from waypoint.observability.tracing import hash_user
 
-EventType = Literal["question", "feedback", "escalation"]
+EventType = Literal["question", "feedback", "escalation", "source_mismatch"]
 COLLECTION = "waypoint_usage"
 
 
@@ -28,6 +28,7 @@ class UsageEvent:
     latency_ms: float = 0.0
     cost_usd: float = 0.0
     out_of_scope: bool = False
+    chunk_id: str = ""  # source_mismatch events: the calendar chunk the student says does not match
     ts: float = field(default_factory=time.time)
 
 

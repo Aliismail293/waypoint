@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     model_location: str = "global"
     agent_model: str = "gemini-3.5-flash"
     critic_model: str = "gemini-3.5-flash"
+    # Fast-path router (waypoint/agents/router.py): a small model classifies each question first. "off" always
+    # takes the full orchestrator path.
+    router: str = "on"
+    router_model: str = "gemini-3.5-flash-lite"
+    router_timeout_s: float = 6.0
+    # Answer cache for identical normalised questions (waypoint/cache.py): off | memory | firestore.
+    answer_cache: str = "memory"
+    answer_cache_ttl_hours: float = 24.0
     critic: bool = True  # self-reflection on plans; off reproduces the Phase 1 planner for A/B runs
     critic_max_revisions: int = 2
     # Conversation state (waypoint/agents/state.py, measured in docs/STATE_OPTIMISATION.md). Defaults follow the
@@ -78,6 +86,10 @@ class Settings(BaseSettings):
 
     # Sessions: "memory" (tests/local) or "firestore".
     sessions: str = "memory"
+
+    # Comma-separated browser origins allowed to call the API cross-origin (e.g. https://SITE.web.app). Empty = no CORS,
+    # which is right when Firebase Hosting rewrites /api to Cloud Run (same origin) or the app is served directly.
+    cors_origins: str = ""
 
     advisor_url: str = "https://www.utm.utoronto.ca/academic-advising-career-centre/"
 

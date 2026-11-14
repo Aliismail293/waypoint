@@ -52,16 +52,28 @@ def cmd_parse(args: argparse.Namespace) -> None:
     print(f"wrote {len(chunks)} chunks, {len(courses)} courses, {len(programs)} programs to {CORPUS_DIR}/")
 
 
+def _invalidate_answer_cache() -> None:
+    """Cached answers were made against the old corpus: bump the version they are keyed by."""
+    from waypoint.cache import bump_corpus_version
+
+    settings = get_settings()
+    if settings.answer_cache != "firestore":
+        return
+    print(f"answer cache invalidated (corpus version {bump_corpus_version(settings)})")
+
+
 def cmd_pgvector(args: argparse.Namespace) -> None:
     from waypoint.ingest.load import load_chunks_into_pgvector
 
     load_chunks_into_pgvector(CORPUS_DIR / "calendar_chunks.jsonl", get_settings(), prune=args.prune)
+    _invalidate_answer_cache()
 
 
 def cmd_bigquery(_: argparse.Namespace) -> None:
     from waypoint.ingest.bigquery_loader import load_into_bigquery
 
     load_into_bigquery(CORPUS_DIR, get_settings())
+    _invalidate_answer_cache()
 
 
 def main() -> None:

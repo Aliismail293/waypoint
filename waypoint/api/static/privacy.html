@@ -78,6 +78,27 @@
       them to be deleted, or until the project is shut down.
     </p>
 
+    <h2>Your profile (optional)</h2>
+    <p>
+      If you fill in the profile, Waypoint stores in Firestore (us-central1), under a one-way hash of your Google
+      account ID: the course codes you mark as taken or in progress, your program code and your expected graduation
+      year. Nothing else: no grades, no student number, no name or email. Waypoint checks each course code against
+      its course data and refuses anything that looks like a student number. When you ask a question, the profile
+      line is sent with that one request to Vertex AI so answers fit your courses; it is never shown to anyone else.
+      You can edit it, or press <strong>Delete my data</strong> in your profile settings (the avatar in the header),
+      and it is deleted immediately.
+    </p>
+
+    <h2>History, plans and the advisor pack</h2>
+    <p>
+      So you can find past answers, Waypoint keeps your last 150 questions in Firestore (us-central1), under the same
+      one-way hash of your account ID: each question (with student-number-like text already redacted), the answer,
+      and the calendar sources it cited. Pinned answers are kept even past that limit. Your plans (terms, courses,
+      chosen sample sections) are stored the same way. The advisor pack PDF and email text are built on demand from
+      your own history and plans and are not stored. <strong>Delete my data</strong> in your profile settings removes
+      your profile, plans and history immediately; you can also delete single history entries.
+    </p>
+
     <h2>Ratings, advisor clicks and usage records</h2>
     <p>
       To understand whether Waypoint helps, it records a small usage event in Firestore:
@@ -150,7 +171,7 @@
 
     <h2>Deleting your data</h2>
     <p>
-      Email <a href="mailto:alii.ekramy.ismail@gmail.com">alii.ekramy.ismail@gmail.com</a> from the Google account
+      Your profile, plans and history you can delete yourself, instantly, from the profile settings. For your conversation sessions and usage records, email <a href="mailto:alii.ekramy.ismail@gmail.com">alii.ekramy.ismail@gmail.com</a> from the Google account
       you used with Waypoint. Waypoint doesn't store email addresses, so the reply will include a simple step to
       confirm which account is yours. Then your conversations and usage records are deleted. Logs and traces
       can't be linked to you by name and expire on the schedules above.

@@ -31,17 +31,23 @@ class RetryingGemini(Gemini):
         self, llm_request: LlmRequest, stream: bool = False
     ) -> AsyncGenerator[LlmResponse, None]:
         for attempt in range(self.max_retries + 1):
-            responses = [r async for r in super().generate_content_async(llm_request, stream)]
-            last = responses[-1] if responses else None
-            malformed = last is not None and (
-                last.error_code in RETRYABLE_FINISH
-                or (last.finish_reason is not None and last.finish_reason.name in RETRYABLE_FINISH)
-            )
-            if not malformed or stream or attempt == self.max_retries:
-                for response in responses:
-                    yield response
+            yielded_content = False
+            retry = False
+            # Responses are forwarded as they arrive (so streamed text isn't delayed). A malformed turn carries
+            # no content, so it can be held back and retried as long as nothing was forwarded before it.
+            async for response in super().generate_content_async(llm_request, stream):
+                malformed = response.error_code in RETRYABLE_FINISH or (
+                    response.finish_reason is not None and response.finish_reason.name in RETRYABLE_FINISH
+                )
+                if malformed and not yielded_content and attempt < self.max_retries:
+                    logger.warning("Gemini returned %s; retrying (attempt %d)", response.error_code, attempt + 1)
+                    retry = True
+                    break
+                if response.content and response.content.parts:
+                    yielded_content = True
+                yield response
+            if not retry:
                 return
-            logger.warning("Gemini returned %s; retrying (attempt %d)", last.error_code, attempt + 1)  # type: ignore[union-attr]
 
 
 def agent_model(settings: Settings | None = None, *, name: str | None = None) -> BaseLlm:

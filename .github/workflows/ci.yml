@@ -28,6 +28,7 @@ jobs:
       - run: uv run ruff check . && uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest -q
+      - run: node --test tests/js/*.test.mjs  # a directory argument fails on older Node
 
   fde-kit:
     runs-on: ubuntu-latest
@@ -70,6 +71,8 @@ jobs:
         run: |
           git worktree add --quiet "$RUNNER_TEMP/base" "${{ github.event.pull_request.base.sha }}"
           if [ -f "$RUNNER_TEMP/base/evals/golden/store.db" ]; then
+            # the base's pyproject expects ragaudit at ../Rag-Tester, i.e. next to the worktree
+            ln -sfn "$(realpath ../Rag-Tester)" "$RUNNER_TEMP/Rag-Tester"
             (cd "$RUNNER_TEMP/base" && uv sync --all-groups --frozen)
             uv run python evals/ci_gate.py measure --repo "$RUNNER_TEMP/base" --out "$RUNNER_TEMP/base.json"
           fi

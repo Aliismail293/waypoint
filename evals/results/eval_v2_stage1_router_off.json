@@ -1,0 +1,46 @@
+{
+  "name": "eval_v2_stage1_router_off",
+  "created_at": "2026-11-14T08:30:29.329540+00:00",
+  "llm": "openai",
+  "mode": "agent",
+  "split": "test",
+  "k": 5,
+  "questions": 21,
+  "pass_rate": 0.5238,
+  "answer_accuracy": 0.5714,
+  "retrieval_hit_rate": 0.8095,
+  "mrr": 0.75,
+  "failure_counts": {
+    "pass": 11,
+    "retrieval_miss": 4,
+    "generation_miss": 6
+  },
+  "verdict_counts": {
+    "true_pass": 11,
+    "lucky_pass": 1,
+    "generation_failure": 6,
+    "retrieval_failure": 3
+  },
+  "adapter_errors": 0,
+  "judge_failures": 0,
+  "p50_latency_ms": 5246.3,
+  "p95_latency_ms": 14684.0,
+  "ttft_p50_ms": 5245.4,
+  "ttft_p95_ms": 14682.4,
+  "by_route": {
+    "full": {
+      "n": 21,
+      "ttft_p50_ms": 5245.4,
+      "ttft_p95_ms": 14682.4,
+      "total_p50_ms": 5246.3,
+      "total_p95_ms": 14684.0,
+      "mean_model_calls": 5.48
+    }
+  },
+  "mean_cost_per_query_usd": 0.01033,
+  "total_agent_cost_usd": 0.217,
+  "mean_model_calls": 5.48,
+  "mean_tokens_per_second": 36.7,
+  "limit_hits": 0,
+  "invalid_citations": 1
+}

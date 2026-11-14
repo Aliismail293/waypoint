@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "site": "waypoint-planner",
+    "public": "hosting-public",
+    "ignore": ["firebase.json", "**/.*"],
+    "rewrites": [
+      { "source": "**", "run": { "serviceId": "waypoint", "region": "us-central1" } }
+    ]
+  }
+}

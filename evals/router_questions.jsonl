@@ -1,0 +1,36 @@
+{"id": "r01", "question": "How many lecture and tutorial contact hours are scheduled for MAT102H5?", "route": "simple_lookup", "specialist": "course", "source": "dev"}
+{"id": "r02", "question": "Which class do students need to take before enrolling in MAT159H5?", "route": "simple_lookup", "specialist": "course", "source": "dev"}
+{"id": "r03", "question": "What classes do I need to take beforehand to be allowed to enroll in the Linear Algebra II course coded as MAT224H5?", "route": "simple_lookup", "specialist": "course", "source": "dev"}
+{"id": "r04", "question": "Which academic area does the MAT233H5 Calculus of Several Variables class count toward for general education breadth?", "route": "simple_lookup", "specialist": "course", "source": "dev"}
+{"id": "r05", "question": "How is MAT307H5 taught, is it online or face-to-face?", "route": "simple_lookup", "specialist": "course", "source": "dev"}
+{"id": "r06", "question": "Could you tell me the official university identifier for the Integral Calculus for Mathematical Sciences class?", "route": "simple_lookup", "specialist": "course", "source": "dev"}
+{"id": "r07", "question": "Which specific class serves as the prerequisite or earlier level that leads directly into MAT247H5?", "route": "simple_lookup", "specialist": "course", "source": "dev"}
+{"id": "r08", "question": "How high does a student's mark in MHF4U Advanced Functions have to be to sign up for MAT102H5 Introduction to Mathematical Proofs?", "route": "simple_lookup", "specialist": "course", "source": "dev"}
+{"id": "r09", "question": "What does MAT224H5 unlock?", "route": "simple_lookup", "specialist": "course", "source": "written"}
+{"id": "r10", "question": "Is MAT135H5 an exclusion for MAT137H5?", "route": "simple_lookup", "specialist": "course", "source": "written"}
+{"id": "r11", "question": "Who leads the department of Mathematical Sciences?", "route": "simple_lookup", "specialist": "policy", "source": "dev"}
+{"id": "r12", "question": "How many overall points do you have to earn to graduate from the ERSPE2511 Mathematical Sciences Specialist Science track?", "route": "simple_lookup", "specialist": "policy", "source": "dev"}
+{"id": "r13", "question": "What is the total amount of credits a student must pass to graduate from the ERMAJ2511 math science program?", "route": "simple_lookup", "specialist": "policy", "source": "dev"}
+{"id": "r14", "question": "If someone is doing the Mathematics major in Mathematical Sciences under code ERMAJ2511, what other specific program are they banned from pursuing alongside it?", "route": "simple_lookup", "specialist": "policy", "source": "dev"}
+{"id": "r15", "question": "Who is the main intended audience for the Specialist Program in Mathematical Sciences?", "route": "simple_lookup", "specialist": "policy", "source": "dev"}
+{"id": "r16", "question": "What are the specific class codes that students doing the Mathematical Sciences Specialist pathway are advised to take?", "route": "simple_lookup", "specialist": "policy", "source": "dev"}
+{"id": "r17", "question": "How many credits does the Mathematics minor require?", "route": "simple_lookup", "specialist": "policy", "source": "written"}
+{"id": "r18", "question": "Where can I find the official web page for the Mathematical Sciences program at UTM?", "route": "simple_lookup", "specialist": "policy", "source": "dev"}
+{"id": "r19", "question": "Which MAT or STA courses this winter fit Tue/Thu afternoons?", "route": "timetable", "specialist": "", "source": "written"}
+{"id": "r20", "question": "What sections of MAT224H5 are offered next term and when do they meet?", "route": "timetable", "specialist": "", "source": "written"}
+{"id": "r21", "question": "Does MAT244H5 have a morning lecture section in Winter 2027?", "route": "timetable", "specialist": "", "source": "written"}
+{"id": "r22", "question": "Which rooms are the MAT302H5 lectures in?", "route": "timetable", "specialist": "", "source": "written"}
+{"id": "r23", "question": "Show me the timetable for MAT102H5 and STA256H5.", "route": "timetable", "specialist": "", "source": "written"}
+{"id": "r24", "question": "Can I fit MAT223H5 and MAT135H5 on Mondays and Wednesdays only?", "route": "timetable", "specialist": "", "source": "written"}
+{"id": "r25", "question": "Are there any evening sections for STA260H5?", "route": "timetable", "specialist": "", "source": "written"}
+{"id": "r26", "question": "I've completed MAT102H5, MAT135H5 and MAT136H5. Make me a term-by-term plan to finish the Mathematics minor, starting 2027 Winter.", "route": "planning", "specialist": "", "source": "planning_questions"}
+{"id": "r27", "question": "I've done MAT102H5, MAT135H5, MAT136H5 and MAT223H5. Plan the rest of the Mathematics major (Mathematics stream) over the next four terms starting 2027 Winter.", "route": "planning", "specialist": "", "source": "planning_questions"}
+{"id": "r28", "question": "Completed: MAT102H5, MAT137H5, MAT139H5, MAT223H5, MAT224H5. Can you plan my Applied Mathematics major courses for 2027 Winter through 2028 Winter?", "route": "planning", "specialist": "", "source": "planning_questions"}
+{"id": "r29", "question": "I'm a first-year with no university math yet. Make me a plan for the first year of the Mathematics major, starting 2026 Fall.", "route": "planning", "specialist": "", "source": "planning_questions"}
+{"id": "r30", "question": "What should I take each term to graduate with the Mathematics specialist by 2029?", "route": "planning", "specialist": "", "source": "written"}
+{"id": "r31", "question": "Help me map out my remaining courses so I can finish my math major in two years.", "route": "planning", "specialist": "", "source": "written"}
+{"id": "r32", "question": "I want to take MAT301H5 as soon as possible. Plan my next three terms.", "route": "planning", "specialist": "", "source": "planning_questions"}
+{"id": "r33", "question": "Compare the Mathematics major and the Applied Mathematics major and tell me when MAT244H5 runs.", "route": "unsure", "specialist": "", "source": "written"}
+{"id": "r34", "question": "What about that one?", "route": "unsure", "specialist": "", "source": "written"}
+{"id": "r35", "question": "What's the best pizza near campus?", "route": "unsure", "specialist": "", "source": "written"}
+{"id": "r36", "question": "Tell me a bit about yourself.", "route": "unsure", "specialist": "", "source": "written"}
