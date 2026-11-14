@@ -416,3 +416,78 @@ select, .add-row input { min-height: 44px; border-radius: 12px; border: 1px soli
   .pip-fa, .pip-fb, .pip-ma, .pip-mb, .pip-bob, .pip-blink, .spin, .link.route { animation: none; }
   .pip-fb, .pip-mb, .pip-blink { opacity: 0; }
 }
+
+/* ---- V3 ---- */
+.inst { font-size: 12px; font-weight: 600; color: var(--muted); border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.layout.single > main { max-width: 860px; margin: 0 auto; }
+
+/* Chat: small superscript citations, sources collapsed at the bottom of the answer */
+.cite { vertical-align: super; font-size: 11px; line-height: 1; min-height: 0; padding: 2px 5px; margin-left: 1px; }
+.sources-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.sources-foot .label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.source-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px 0 6px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, 0.8); font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.source-chip:hover, .source-chip.active { border-color: var(--primary); background: var(--primary-softer); }
+.source-chip .n { width: 22px; height: 22px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-dark); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.sources-foot .more { min-height: 36px; padding: 0 12px; border-radius: 999px; font-size: 13px; }
+.course-link { color: var(--primary); text-decoration: none; font-weight: 600; }
+.course-link:hover { text-decoration: underline; }
+
+/* Course map */
+.page-head select, .page-head input[type="search"] { min-height: 44px; border-radius: 12px; border: 1px solid var(--line-2); padding: 0 12px; font: inherit; color: var(--ink); }
+.chiprow { display: flex; flex-wrap: wrap; gap: 8px; }
+.chiprow:empty { display: none; }
+.chip.on { background: var(--primary); color: #fff; border: 0; cursor: pointer; }
+.map-node { transition: opacity 0.15s; }
+.map-node.planned { border: 2px dashed var(--primary); background: var(--primary-softer); }
+.map-node.ghost { border: 1px dashed #8b93a8; background: #e8ebf3; color: var(--ink-2); }
+.map-node.dim { opacity: 0.25; }
+.link.or { stroke-dasharray: 6 4; }
+.link.dim { opacity: 0.12; }
+.link.hl { opacity: 1; stroke-linecap: round; }
+.or-badge { font-size: 11px; font-weight: 700; fill: var(--primary-dark); paint-order: stroke; stroke: #fff; stroke-width: 4px; }
+.sw.planned { background: var(--primary-softer); border: 2px dashed var(--primary); }
+.sw.ghost { background: #e8ebf3; border: 1px dashed #8b93a8; }
+.map-pop { position: absolute; z-index: 5; width: 270px; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.map-pop .map-title { font-size: 20px; }
+.map-pop .status-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.map-pop .btn { min-height: 44px; padding: 0 12px; }
+.planned-pick { display: flex; gap: 6px; align-items: center; }
+.planned-pick input { width: 92px; min-height: 44px; border-radius: 12px; border: 1px solid var(--line-2); padding: 0 8px; font: inherit; }
+.info summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.i-badge, .i-btn { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-dark); font-size: 12px; font-weight: 800; font-style: italic; border: 0; }
+.i-btn { cursor: pointer; font-family: Georgia, serif; }
+.i-btn:hover, .i-btn[aria-expanded="true"] { background: var(--primary); color: #fff; }
+.linklike { background: none; border: 0; padding: 0; font: inherit; color: var(--primary); text-decoration: underline; cursor: pointer; }
+.pad { padding: 24px; }
+
+/* My plan: amber heads-ups, neutral notes, the "i" popover */
+.plan-card.warn { border-left-color: #b45309; }
+.info-pop { margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: var(--primary-softer); font-size: 13px; }
+.info-pop p { margin: 0 0 4px; overflow-wrap: anywhere; }
+.report li.headsup span { color: var(--warn-text); }
+.report li.note span { color: var(--ink-2); }
+.critic h3 { margin: 10px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.credits a { margin-left: 10px; font-size: 13px; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin: 8px 0; }
+.check input { margin-top: 3px; width: 18px; height: 18px; }
+
+/* Programs and Enrolment check */
+.prog-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.prog-layout > aside { flex: 1 1 280px; max-width: 360px; }
+.prog-main { flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.pane { border-radius: 22px; padding: 20px; }
+.prog-list, .reqs, .enrol-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.prog { display: flex; gap: 8px; align-items: center; }
+.prog-open { flex: 1; text-align: left; min-height: 44px; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.75); font: inherit; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; }
+.prog-open small { font-weight: 400; color: var(--muted); }
+.prog-open.on { border-color: var(--primary); background: var(--primary-softer); }
+.req { display: flex; gap: 10px; align-items: flex-start; }
+.req .badge { flex: none; min-width: 112px; text-align: center; }
+.badge.plan { background: var(--primary-softer); color: var(--primary-dark); }
+.wrap { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.enrol-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.enrol-course h3 small { font-weight: 400; color: var(--muted); }
+.enrol-course h4 { margin: 12px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.headsup { color: var(--warn-text); }
+.acorn { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; white-space: pre-wrap; font-size: 14px; }
+@media (max-width: 720px) { .inst { display: none; } .map-pop { width: 240px; } }

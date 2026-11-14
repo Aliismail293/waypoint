@@ -10,12 +10,14 @@ let saveTimer = null;
 let saving = false;
 let note = "";
 
-const ICON = {
+const NOTE_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F576B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11v5M12 8h.01"/><circle cx="12" cy="12" r="10"/></svg>';
+const ICON_BASE = {
   ok: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E7A43" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
-  warn: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
-  error: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9B1C1C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
+  headsup: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',
 };
-const STATUS = { ok: ["Critic check passed", "ok"], notes: ["Critic has notes", "warn"], errors: ["Critic found problems", "bad"], empty: ["No courses yet", "plain"] };
+const STATUS = { ok: ["Critic check passed", "ok"], notes: ["Critic has notes", "plain"], headsup: ["Critic has heads-ups", "warn"], empty: ["No courses yet", "plain"] };
+
+const ICON = { ...ICON_BASE, note: NOTE_ICON };
 
 export const activePlan = () => planState.plans.find((p) => p.id === planState.id) || planState.plans[0] || null;
 
@@ -84,15 +86,23 @@ const termLabel = (t) => escapeHtml(t.term);
 
 function cardHtml(plan, code, term) {
   const review = plan.review;
-  const bad = review.items.some((i) => i.level === "error" && i.codes.includes(code));
+  const heads = review.items.some((i) => i.level === "headsup" && i.codes.includes(code));
   const taken = (planState.profileStatus || {})[code];
-  const status = taken === "now" ? ["In progress", "now"] : taken === "done" ? ["Taken", "done"] : bad ? ["Check prerequisites", "bad"] : ["Planned", "plan"];
+  const status = taken === "now" ? ["In progress", "now"] : taken === "done" ? ["Taken", "done"] : heads ? ["Heads-up", "warn"] : ["Planned", "plan"];
+  const card = (review.cards || {})[code];
+  const info = card
+    ? `<button type="button" class="i-btn" data-info="${code}" aria-label="Prerequisites of ${code}" aria-expanded="${planState.info === code}">i</button>`
+    : "";
+  const infoBox =
+    card && planState.info === code
+      ? `<div class="info-pop" role="note">${card.lines.map((l) => `<p>${escapeHtml(l)}</p>`).join("")}${card.calendar_url ? `<a href="${escapeHtml(card.calendar_url)}" target="_blank" rel="noopener">Open on the official calendar</a>` : ""}</div>`
+      : "";
   const others = plan.terms.filter((t) => t.term !== term).map((t) => `<option value="${escapeHtml(t.term)}">${termLabel(t)}</option>`).join("");
   return (
     `<div class="plan-card ${status[1]}" draggable="true" data-code="${code}" data-term="${escapeHtml(term)}">` +
-    `<div class="top"><a href="#/course/${code}" class="code">${code}</a><button type="button" class="x" data-remove="${code}" aria-label="Remove ${code} from ${escapeHtml(term)}">×</button></div>` +
+    `<div class="top"><a href="#/course/${code}" class="code">${code}</a>${info}<button type="button" class="x" data-remove="${code}" aria-label="Remove ${code} from ${escapeHtml(term)}">×</button></div>` +
     `<div class="title">${escapeHtml(plan.titles[code] || "")}</div>` +
-    `<div class="state">${status[0]}</div>` +
+    `<div class="state">${status[0]}</div>${infoBox}` +
     (others ? `<label class="sr" for="mv-${code}">Move ${code} to</label><select class="move" id="mv-${code}" data-move="${code}"><option value="">Move to…</option>${others}</select>` : "") +
     `</div>`
   );
@@ -107,27 +117,32 @@ function termHtml(plan, t) {
   );
 }
 
+function itemHtml(plan, item) {
+  const sources = item.chunk_ids
+    .map((id) => plan.sources.find((s) => s.chunk_id === id))
+    .filter(Boolean)
+    .map((s) => `<button type="button" class="cite" data-chunk="${escapeHtml(s.chunk_id)}" aria-label="Open source ${escapeHtml(s.code || s.title)}">${escapeHtml(s.code || "source")}</button>`)
+    .join("");
+  const detail = item.codes.length && (plan.review.cards || {})[item.codes[0]] ? `<button type="button" class="i-btn" data-info="${item.codes[0]}" aria-label="Details for ${item.codes[0]}">i</button>` : "";
+  return `<li class="${item.level}">${ICON[item.level]}<span>${escapeHtml(item.text)} ${detail}${sources ? `<span class="cites">${sources}</span>` : ""}</span></li>`;
+}
+
 function reviewHtml(plan) {
   const r = plan.review;
-  const rows = r.items
-    .map((item) => {
-      const sources = item.chunk_ids
-        .map((id) => plan.sources.find((s) => s.chunk_id === id))
-        .filter(Boolean)
-        .map((s) => `<button type="button" class="cite" data-chunk="${escapeHtml(s.chunk_id)}" aria-label="Open source ${escapeHtml(s.code || s.title)}">${escapeHtml(s.code || "source")}</button>`)
-        .join("");
-      return `<li class="${item.level}">${ICON[item.level]}<span>${escapeHtml(item.text)} ${sources ? `<span class="cites">${sources}</span>` : ""}</span></li>`;
-    })
-    .join("");
+  const group = (title, level, empty) => {
+    const items = r.items.filter((i) => i.level === level);
+    return items.length ? `<h3>${title}</h3><ul class="report">${items.map((i) => itemHtml(plan, i)).join("")}</ul>` : empty ? `<p class="muted">${empty}</p>` : "";
+  };
   const state = saving ? "thinking" : r.status === "ok" ? "idle" : "talking";
-  const errors = r.items.filter((i) => i.level === "error").length;
-  const notes = r.items.filter((i) => i.level === "warn").length;
+  const heads = r.items.filter((i) => i.level === "headsup").length;
+  const notes = r.items.filter((i) => i.level === "note").length;
   return (
-    `<div class="critic-head"><div class="pip-slot">${pipSvg(state, 56)}</div><div><div class="critic-title">Critic report</div>` +
-    `<div class="muted">${saving ? "Checking your changes…" : `Checked by code · ${errors} problem${errors === 1 ? "" : "s"} · ${notes} note${notes === 1 ? "" : "s"}`}</div></div></div>` +
-    `<ul class="report">${rows}</ul>` +
-    `<button type="button" class="btn primary" id="plan-ask">${errors ? "Ask Pip to explain and fix" : "Ask Pip to fill the gap"}</button>` +
-    `<p class="muted">The checks are plain code. Pip only explains them. Always confirm a plan with an academic advisor before you enrol.</p>`
+    `<div class="critic-head"><div class="pip-slot">${pipSvg(state, 56)}</div><div><div class="critic-title" id="critic-title" tabindex="-1">Critic report</div>` +
+    `<div class="muted">${saving ? "Checking your changes…" : `Checked by code · ${heads} heads-up${heads === 1 ? "" : "s"} · ${notes} note${notes === 1 ? "" : "s"}`}</div></div></div>` +
+    group("Heads-ups", "headsup", "No heads-ups.") +
+    group("Notes", "note", "") +
+    `<ul class="report">${r.items.filter((i) => i.level === "ok").map((i) => itemHtml(plan, i)).join("")}</ul>` +
+    `<p class="muted">The checks are plain code. Notes are information, not errors: tap a course's <b>i</b> for its full requirement. Always confirm a plan with an academic advisor before you enrol.</p>`
   );
 }
 
@@ -147,7 +162,7 @@ function draw() {
   const required = credits?.required;
   const pct = credits && required ? Math.min(100, Math.round((credits.counted / required[0]) * 100)) : 0;
   const creditLine = credits
-    ? `<span>Credits counted (taken plus planned)</span><strong>${credits.counted} of ${required ? (required[0] === required[1] ? required[0] : `${required[0]}–${required[1]}`) : "?"}</strong>`
+    ? `<span>Credits counted (taken plus planned)</span><strong>${required ? `${credits.counted} of ${required[0] === required[1] ? required[0] : `${required[0]}-${required[1]}`}` : `${credits.counted}`}</strong>${required ? "" : ' <a href="#/programs">Pick your program to see your target</a>'}`
     : `<span>Credits counted</span><strong>0</strong>`;
   const picker = planState.plans.length > 1 ? `<label class="sr" for="plan-pick">Choose a plan</label><select id="plan-pick">${planState.plans.map((p) => `<option value="${p.id}"${p.id === plan.id ? " selected" : ""}>${escapeHtml(p.name)}</option>`).join("")}</select>` : "";
   root.innerHTML =
@@ -230,9 +245,9 @@ export function wirePlan() {
       planState.plans = planState.plans.filter((p) => p.id !== plan.id);
       planState.id = planState.plans[0]?.id || null;
       draw();
-    } else if (t.id === "plan-ask") {
-      const text = plan.review.plan_text || "(no courses yet)";
-      window.dispatchEvent(new CustomEvent("waypoint:ask", { detail: `Here is my plan: ${text}. Check it and tell me what to fix or add to finish my program.` }));
+    } else if (t.dataset.info) {
+      planState.info = planState.info === t.dataset.info ? null : t.dataset.info;
+      draw();
     } else if (t.dataset.chunk) {
       window.dispatchEvent(new CustomEvent("waypoint:open-source", { detail: { sources: plan.sources, chunkId: t.dataset.chunk } }));
     }
@@ -278,7 +293,7 @@ export function wirePlan() {
   });
 }
 
-export async function showPlan() {
+export async function showPlan(focusCritic = false) {
   await flushPlanSave();
   const root = el("plan-root");
   if (!planState.loaded) root.innerHTML = '<p class="muted">Loading your plans…</p>';

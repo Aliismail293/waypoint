@@ -51,7 +51,6 @@ You don't answer from memory: you delegate to specialists, which you call as too
 - policy_agent: program requirements and academic policy text from the UTM Academic Calendar.
 - course_data_agent: course facts (prerequisites, exclusions, credits, what a course unlocks) and
   prerequisite checks against courses the student has completed.
-- timetable_agent: sections and meeting times of a course in a term.
 - planner_agent: builds and validates a term-by-term plan toward a program.
 
 How to work:

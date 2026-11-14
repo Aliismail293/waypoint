@@ -127,63 +127,104 @@ test("claimFor: the answer line that cites the chunk, cleaned", () => {
   assert.equal(claimFor(answer, "cal:m#zzz"), "");
 });
 
-// ---- Stage 3: course map and course links ----
-import { edgePath, layoutMap, routeEdges, routeNote, unlockableNext, visibleCodes } from "../../waypoint/api/static/js/map.js";
+// ---- V3: course map (level bands, prerequisite-depth sub-columns, path highlight), chat bits ----
+import { HIGHLIGHT, NODE_H, NODE_W, cardKind, edgePath, findCourses, layoutMap, orBadges, pathInto, setStatus, subjectLabel } from "../../waypoint/api/static/js/map.js";
+import { coverageText, sourceChip } from "../../waypoint/api/static/js/chat-bits.js";
 import { linkCourseCodes } from "../../waypoint/api/static/js/citations.js";
 
-const node = (code, column, extra = {}) => ({ code, title: code, level: 2, in_data: true, status: null, column, ...extra });
+const node = (code, band, sub, extra = {}) => ({ code, title: `Title ${code}`, band, sub, subject: code.slice(0, 3), ghost: false, status: null, ...extra });
 const NODES = [
-  node("A100", "before", { status: "done" }),
-  node("B200", "now", { status: "now" }),
-  node("C200", "lower"),
-  node("D300", "upper"),
-  node("E400", "upper"),
-  node("F100", "lower"),
-  node("X101", "lower", { in_data: false }),
+  node("MAT135H5", 1, 0),
+  node("MAT136H5", 1, 1),
+  node("MAT223H5", 2, 0),
+  node("MAT224H5", 2, 1),
+  node("MAT299H5", 2, 0),
+  node("MAT301H5", 3, 0),
+  node("CSC110Y5", 1, 0, { ghost: true, subject: "CSC" }),
 ];
 const EDGES = [
-  { from: "A100", to: "B200" },
-  { from: "B200", to: "C200" },
-  { from: "C200", to: "D300" },
-  { from: "D300", to: "E400" },
-  { from: "X101", to: "E400" },
+  { from: "MAT135H5", to: "MAT136H5", kind: "one_of", group: 1 },
+  { from: "MAT223H5", to: "MAT224H5", kind: "all", group: 0 },
+  { from: "MAT224H5", to: "MAT301H5", kind: "all", group: 0 },
+  { from: "MAT136H5", to: "MAT301H5", kind: "one_of", group: 1 },
+  { from: "CSC110Y5", to: "MAT224H5", kind: "one_of", group: 2 },
 ];
 
-test("visibleCodes: a student with courses sees them plus two hops onward; no courses shows everything in the data", () => {
-  assert.deepEqual([...visibleCodes(NODES, EDGES)].sort(), ["A100", "B200", "C200", "D300"]);
-  assert.ok(visibleCodes(NODES, EDGES, { showAll: true }).has("F100"));
-  assert.ok(!visibleCodes(NODES, EDGES, { showAll: true }).has("X101")); // outside the data: only drawn when needed
-  const empty = NODES.map((n) => ({ ...n, status: null }));
-  assert.equal(visibleCodes(empty, EDGES).size, 6);
-  assert.ok(visibleCodes(NODES, EDGES, { keep: "E400" }).has("E400")); // a selected course is always shown
+test("layoutMap: ghosts first, then level bands; sub-columns left to right inside a band", () => {
+  const { positions, headers } = layoutMap(NODES);
+  assert.deepEqual(headers.map((h) => h.id), ["ghost", "band1", "band2", "band3"]);
+  const x = (c) => positions.get(c).x;
+  assert.ok(x("CSC110Y5") < x("MAT135H5") && x("MAT135H5") < x("MAT136H5") && x("MAT136H5") < x("MAT223H5"));
+  assert.ok(x("MAT223H5") < x("MAT224H5") && x("MAT224H5") < x("MAT301H5"));
+  assert.equal(x("MAT223H5"), x("MAT299H5")); // no prerequisite in the band: same first sub-column
+  assert.ok(positions.get("MAT223H5").y < positions.get("MAT299H5").y); // rows sorted by code
+  assert.equal(headers.find((h) => h.id === "band2").count, 3);
 });
 
-test("layoutMap: columns left to right, rows sorted, headers carry counts", () => {
-  const layout = layoutMap(NODES, new Set(["A100", "B200", "C200", "D300", "E400"]));
-  const a = layout.positions.get("A100");
-  const b = layout.positions.get("B200");
-  assert.ok(a.x < b.x && b.x < layout.positions.get("C200").x && layout.positions.get("C200").x < layout.positions.get("D300").x);
-  assert.ok(layout.positions.get("D300").y < layout.positions.get("E400").y);
-  assert.equal(layout.headers.find((h) => h.id === "upper").count, 2);
-  assert.ok(!layout.positions.has("F100"));
+test("layoutMap: an empty band gets no column and an empty map has a size", () => {
+  const { headers, width, height } = layoutMap([node("MAT135H5", 1, 0), node("MAT401H5", 4, 0)]);
+  assert.deepEqual(headers.map((h) => h.id), ["band1", "band4"]);
+  assert.ok(width > 0 && height > 0);
+  assert.deepEqual(layoutMap([]).headers, []);
 });
 
-test("edgePath: a curve between columns, a loop inside one column", () => {
-  assert.match(edgePath({ x: 24, y: 36 }, { x: 304, y: 108 }), /^M214 63C/);
-  assert.match(edgePath({ x: 24, y: 36 }, { x: 24, y: 108 }), /^M214 63C258 63 258 135 214 135$/);
+test("edgePath: a curve to the right, a loop inside one sub-column, a reverse curve for a ghost on the left", () => {
+  assert.match(edgePath({ x: 20, y: 40 }, { x: 210, y: 104 }), new RegExp(`^M${20 + NODE_W} ${40 + NODE_H / 2}C`));
+  assert.match(edgePath({ x: 20, y: 40 }, { x: 20, y: 104 }), /^M170 65C210 65 210 129 170 129$/);
+  assert.match(edgePath({ x: 400, y: 40 }, { x: 20, y: 40 }), /^M400 65C/);
 });
 
-test("unlockableNext: only courses whose in-data prerequisites are all the student's", () => {
-  assert.deepEqual([...unlockableNext(NODES, EDGES)], ["C200"]);
+test("pathInto: every prerequisite path into a course, and only those edges", () => {
+  const path = pathInto(EDGES, "MAT301H5");
+  assert.deepEqual([...path.nodes].sort(), ["CSC110Y5", "MAT135H5", "MAT136H5", "MAT223H5", "MAT224H5", "MAT301H5"]);
+  assert.equal(path.edges.size, 5);
+  const small = pathInto(EDGES, "MAT136H5");
+  assert.deepEqual([...small.nodes].sort(), ["MAT135H5", "MAT136H5"]);
+  assert.deepEqual([...small.edges], ["MAT135H5>MAT136H5"]);
+  assert.deepEqual([...pathInto(EDGES, "MAT299H5").nodes], ["MAT299H5"]);
 });
 
-test("routeEdges / routeNote: edges follow the steps; every state has an honest note", () => {
-  const route = { state: "route", steps: [{ code: "A100" }, { code: "B200" }, { code: "C200" }] };
-  assert.deepEqual(routeEdges(route), [{ from: "A100", to: "B200" }, { from: "B200", to: "C200" }]);
-  assert.deepEqual(routeEdges({ state: "no_route", steps: [] }), []);
-  assert.match(routeNote("no_route"), /None of this course's prerequisite links/);
-  assert.match(routeNote("no_links"), /no prerequisite links/);
-  assert.match(routeNote("route"), /only the prerequisite links in its data/i);
+test("pathInto survives a cycle in the data", () => {
+  const loop = [{ from: "A", to: "B" }, { from: "B", to: "A" }];
+  assert.deepEqual([...pathInto(loop, "A").nodes].sort(), ["A", "B"]);
+});
+
+test("orBadges: one badge per `or` group, at the midpoint of its first edge", () => {
+  const { positions } = layoutMap(NODES);
+  const badges = orBadges(EDGES, positions);
+  assert.deepEqual(badges.map((b) => b.id).sort(), ["MAT136H5#1", "MAT224H5#2", "MAT301H5#1"]);
+  assert.equal(orBadges(EDGES.filter((e) => e.kind === "all"), positions).length, 0);
+});
+
+test("cardKind / setStatus: choosing a status recolours the card at once", () => {
+  assert.equal(cardKind(NODES[0]), "other");
+  assert.equal(cardKind(NODES[6]), "ghost");
+  const changed = setStatus(NODES, "MAT135H5", "done");
+  assert.equal(cardKind(changed[0]), "taken");
+  assert.equal(cardKind(setStatus(changed, "MAT135H5", "now")[0]), "now");
+  assert.equal(cardKind(setStatus(changed, "MAT135H5", "planned")[0]), "planned");
+  assert.equal(cardKind(setStatus(changed, "MAT135H5", null)[0]), "other");
+  assert.equal(NODES[0].status, null); // not mutated
+});
+
+test("findCourses / subjectLabel: code prefix or title words; full name plus code", () => {
+  assert.deepEqual(findCourses(NODES, "mat22").map((n) => n.code), ["MAT223H5", "MAT224H5"]);
+  assert.deepEqual(findCourses(NODES, "title mat301").map((n) => n.code), ["MAT301H5"]);
+  assert.deepEqual(findCourses(NODES, "csc"), []); // ghosts aren't search results
+  assert.equal(subjectLabel({ code: "ANT", name: "Anthropology" }), "Anthropology \u00b7 ANT");
+  assert.equal(subjectLabel({ code: "ANT", name: "" }), "ANT");
+  assert.equal(HIGHLIGHT, "#F59E0B");
+});
+
+test("coverageText: says exactly what is loaded and what is not", () => {
+  const coverage = { campuses: [{ name: "UTM (Mississauga)", courses: 59, subjects: ["MAT"] }, { name: "UTSC (Scarborough)", courses: 0, subjects: [] }] };
+  assert.equal(coverageText(coverage), "Waypoint has UTM (Mississauga): 59 courses in MAT. UTSC (Scarborough) aren't loaded yet.");
+  assert.match(coverageText({ campuses: [] }), /no calendar data/);
+});
+
+test("sourceChip: a compact chip with its number and the course code (or title)", () => {
+  assert.match(sourceChip({ n: 2, code: "MAT224H5", title: "Linear Algebra II" }), /data-source="2"><span class="n">2<\/span>MAT224H5<\/button>/);
+  assert.match(sourceChip({ n: 1, code: "", title: "Degree <b>requirements</b>" }), /Degree &lt;b&gt;/);
 });
 
 test("linkCourseCodes: links codes in text, never inside tags", () => {
@@ -195,39 +236,6 @@ test("linkCourseCodes: links codes in text, never inside tags", () => {
 
 test("renderMarkdown links course codes", () => {
   assert.match(renderMarkdown("**MAT224H5** needs MAT223H5", new Map()), /href="#\/course\/MAT223H5"/);
-});
-
-// ---- Stage 4: timetable grid ----
-import { gridBlocks, blockStyle, toMinutes } from "../../waypoint/api/static/js/timetable.js";
-
-const sec = (id, course, type, number, meetings) => ({ section_id: id, course, type, number, meetings });
-const m = (day, start, end) => ({ day, start, end, room: null });
-
-test("gridBlocks: one block per meeting, in the right day column, weekends dropped", () => {
-  const blocks = gridBlocks([sec("a", "MAT224H5", "Lecture", "0101", [m("Tuesday", "13:00", "15:00"), m("Thursday", "13:00", "14:00"), m("Saturday", "10:00", "11:00")])]);
-  assert.deepEqual(blocks.map((b) => [b.day, b.start, b.end]), [[1, 780, 900], [3, 780, 840]]);
-  assert.equal(toMinutes("13:30"), 810);
-});
-
-test("gridBlocks: overlapping meetings share the day's width and are flagged as clashes", () => {
-  const chosen = [
-    sec("a", "MAT224H5", "Lecture", "0101", [m("Tuesday", "13:00", "15:00")]),
-    sec("b", "MAT232H5", "Lecture", "0101", [m("Tuesday", "14:00", "16:00")]),
-    sec("c", "MAT244H5", "Lecture", "0101", [m("Tuesday", "16:00", "17:00")]), // starts when the others end: full width
-  ];
-  const blocks = gridBlocks(chosen, [{ a: "a", b: "b" }]);
-  const [a, b, c] = blocks;
-  assert.deepEqual([a.cols, b.cols, a.col, b.col], [2, 2, 0, 1]);
-  assert.equal(c.cols, 1);
-  assert.ok(a.clash && b.clash && !c.clash);
-  assert.notEqual(a.edge, b.edge); // each course has its own colour
-  assert.match(blockStyle(a), /left:calc\(0% \+ 2px\);width:calc\(50% - 4px\)/);
-  assert.match(blockStyle(b), /left:calc\(50% \+ 2px\)/);
-});
-
-test("blockStyle: position follows the clock (8:00 is the top of the grid)", () => {
-  const [b] = gridBlocks([sec("a", "X", "Lecture", "1", [m("Monday", "09:00", "11:00")])]);
-  assert.match(blockStyle(b), /top:48px;height:94px/);
 });
 
 // ---- Stage 5: history grouping ----

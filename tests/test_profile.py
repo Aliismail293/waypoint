@@ -236,7 +236,7 @@ def test_autocomplete_map_route_and_course_page(client):
 
     page = client.get("/api/course/MAT224H5", headers=h).json()
     assert page["calendar"]["source_url"].startswith("https://utm.calendar.utoronto.ca/")
-    assert page["sections_source"].startswith("sample")  # the sample timetable is always labelled
+    assert "sections" not in page and "sections_source" not in page  # V3: no sample timetable on the course page
     assert {r["code"]: r["status"] for r in page["prerequisite_check"]["required"]}["MAT223H5"] == "now"
     assert client.get("/api/course/NOPE101H5", headers=h).status_code == 404
 

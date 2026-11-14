@@ -1,24 +1,20 @@
-"""Data for the Course page: calendar fields, prerequisites checked against the student's profile, sample sections.
+"""Data for the Course page: calendar fields, prerequisites checked against the student's profile.
 
 Calendar fields come straight from the ingested record; anything missing is returned as None so the page shows an
-explicit empty state, never a guess. Sections come from the synthetic sample timetable and are always labelled.
-"""
+explicit empty state, never a guess."""
 
 from typing import Any
 
-from waypoint.mcp.timetable.adapter import TimetableAdapter
 from waypoint.profile import Profile
 from waypoint.tools.catalog import Catalog, normalise_code
 from waypoint.tools.prereqs import check_prerequisites
-
-TERMS = ("2026 Fall", "2027 Winter")
 
 
 def _clean(value: Any) -> Any:
     return value if value not in ("", None, []) else None
 
 
-def course_page(catalog: Catalog, timetable: TimetableAdapter, profile: Profile, code: str) -> dict[str, Any] | None:
+def course_page(catalog: Catalog, profile: Profile, code: str) -> dict[str, Any] | None:
     rows = catalog.run("get_course", {"code": normalise_code(code)})
     exact = [r for r in rows if r["code"] == normalise_code(code)]
     if not exact:
@@ -35,11 +31,6 @@ def course_page(catalog: Catalog, timetable: TimetableAdapter, profile: Profile,
     unlocks = [
         {"code": r["code"], "title": r["title"]} for r in catalog.run("courses_unlocked_by", {"code": course["code"]})
     ]
-
-    sections = []
-    for term in TERMS:
-        for s in timetable.search_sections(course["code"], term):
-            sections.append(s.model_dump())
 
     return {
         "code": course["code"],
@@ -65,11 +56,9 @@ def course_page(catalog: Catalog, timetable: TimetableAdapter, profile: Profile,
             "required": required,
         },
         "unlocks": unlocks,
-        "sections": sections,
-        "sections_source": timetable.source.label,
         "suggested_questions": [
             f"What are the prerequisites for {course['code']}?",
             f"What does {course['code']} unlock?",
-            f"Is {course['code']} offered this winter, and when do the sections meet?",
+            f"Which courses at other campuses overlap with {course['code']}?",
         ],
     }

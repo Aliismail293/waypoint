@@ -136,7 +136,8 @@ def build_agents(deps: Dependencies) -> dict[str, BaseAgent]:
         description="Waypoint orchestrator: routes questions to specialists and composes a cited answer.",
         model=agent_model(s),
         instruction=_instruction(prompts.ORCHESTRATOR),
-        tools=[AgentTool(policy), AgentTool(course_data), AgentTool(timetable), AgentTool(planner)],
+        # no timetable tool: V3 has no real section data, so the orchestrator never offers (or invents) one
+        tools=[AgentTool(policy), AgentTool(course_data), AgentTool(planner)],
         generate_content_config=_config(s),
     )
     return {

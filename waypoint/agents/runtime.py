@@ -53,7 +53,7 @@ from waypoint.sources import locate_passage
 APP_NAME = "waypoint"
 tracer = trace.get_tracer("waypoint")
 logger = logging.getLogger(__name__)
-FAST_ROUTES = ("policy_agent", "course_data_agent", "timetable_agent", "planner_agent")
+FAST_ROUTES = ("policy_agent", "course_data_agent", "planner_agent")  # timetable_agent is a demo, off the user path
 CHUNK_ID = r"cal:[a-z0-9-]+#[a-z0-9-]+"
 CITATION = re.compile(rf"\[({CHUNK_ID})\]")
 # Models sometimes group several ids in one bracket: [cal:a#x, cal:a#y]. Split those into [id][id].
@@ -258,6 +258,12 @@ def check_citations(text: str, retrieved: list[str]) -> tuple[str, list[str], li
         text = text.replace(f"[{chunk_id}]", "")
     return text, [c for c in cited if c in allowed], invalid
 
+
+NO_TIMETABLE = (
+    "Waypoint doesn't have real section times or room data, so I can't tell you what meets when. Use U of T's "
+    "Timetable Builder for sections and ACORN to enrol. When you're ready, the **Enrolment check** tab lists "
+    "your planned courses for next term, with their enrolment notes and conflicts, and a list to search on ACORN."
+)
 
 PARTIAL_PLAN_NOTE = (
     "That planning question is taking longer than I can wait here, so this is what I have so far. "
@@ -695,6 +701,11 @@ class WaypointRuntime:
         record.send("status", running)
         decision = await self._route(text, has_history)
         record.category, record.router_ms, record.router_calls = decision.category, decision.ms, decision.model_calls
+        if decision.category == "timetable":  # no sample or invented schedules: point to the real tools
+            record.route = "fast"
+            record.send("status", {"step": "route", "id": "route", "label": "Chose a direct path", "state": "done"})
+            self._stream_text(record, NO_TIMETABLE)
+            return NO_TIMETABLE
         fast_key = self._fast_key(decision)
         record.route = "fast" if fast_key else "full"
         record.send(

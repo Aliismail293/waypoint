@@ -212,14 +212,14 @@ def test_pack_pdf_and_email_contain_only_the_students_own_data(client):
         headers=H("ben"),
     ).json()
 
-    body = {"plan_id": plan["id"], "timetable_term": "2027 Winter"}
+    body = {"plan_id": plan["id"]}
     pdf = client.post("/api/pack/pdf", json=body, headers=H("ana"))
     assert (
         pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf" and pdf.content.startswith(b"%PDF")
     )
     email = client.post("/api/pack/email", json=body, headers=H("ana")).json()["text"]
     assert "MAT224H5" in email and "MAT344H5" not in email and "Ben secret" not in email and "MAT202H5" not in email
-    assert "sample data" in email  # the timetable section is labelled
+    assert "sample data" not in email  # V3: no sample timetable in the user path
     # another student's plan can't be used
     assert client.post("/api/pack/pdf", json={"plan_id": ben_plan["id"]}, headers=H("ana")).status_code == 404
     assert (

@@ -29,7 +29,11 @@ def runtime(settings):
 def test_tree_shape(settings):
     agents = build_agents(build_dependencies(settings))
     root = agents["waypoint"]
-    assert {t.name for t in root.tools} == {"policy_agent", "course_data_agent", "timetable_agent", "planner_agent"}
+    assert {t.name for t in root.tools} == {
+        "policy_agent",
+        "course_data_agent",
+        "planner_agent",
+    }  # timetable_agent is a demo only
     drafter, critic = agents["planner_agent"].sub_agents  # self-reflection: drafter + critic
     assert drafter.planner is not None  # ReAct planner
     assert "validate_plan" in {getattr(t, "__name__", "") for t in drafter.tools}
@@ -57,11 +61,12 @@ async def test_policy_question_retrieves_chunks(runtime):
     assert set(answer.citations) <= set(answer.record.retrieved_chunk_ids)
 
 
-async def test_timetable_question_goes_through_mcp(runtime):
-    answer = await runtime.ask("u1", "Which MAT224 sections fit Tue/Thu afternoons this winter?")
-    assert "timetable_agent" in answer.record.agents
-    assert "search_sections" in answer.record.tool_calls
-    assert "synthetic" in answer.text
+async def test_timetable_question_gets_no_sample_schedule_and_points_to_real_tools():
+    # V3: no sample timetable in any answer (the MCP agent stays in the repo as a demo; see test_timetable_mcp.py)
+    settings = Settings(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory")
+    answer = await WaypointRuntime.from_settings(settings).ask("u1", "Which MAT224 sections fit Tue/Thu afternoons?")
+    assert answer.record.model_calls == [] and "timetable_agent" not in answer.record.agents
+    assert "Timetable Builder" in answer.text and "ACORN" in answer.text and "synthetic" not in answer.text
 
 
 async def test_sessions_are_per_user(runtime):
