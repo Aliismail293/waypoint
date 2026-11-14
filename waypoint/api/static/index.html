@@ -4,49 +4,101 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Waypoint — UTM degree planning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <span class="logo" aria-hidden="true">◆</span>
-      <div>
-        <h1>Waypoint</h1>
-        <p class="tagline">Degree-planning help for UTM students, with sources from the Academic Calendar.</p>
-      </div>
-    </div>
+  <header class="app-header">
+    <a class="logo" href="#/chat">
+      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z" fill="#4338CA"/><circle cx="12" cy="10" r="3" fill="#FFFFFF"/></svg>
+      Waypoint
+    </a>
+    <nav class="tabs glass" aria-label="Main">
+      <a href="#/chat" data-tab="chat" aria-current="page">Chat</a>
+      <a href="#/map" data-tab="map">Course map</a>
+      <a href="#/plan" data-tab="plan">My plan</a>
+      <a href="#/timetable" data-tab="timetable">Timetable</a>
+      <a href="#/history" data-tab="history">History</a>
+    </nav>
     <div id="account"><div id="signin"></div><span id="who" hidden></span></div>
   </header>
 
-  <main>
-    <section class="notice">
-      Waypoint covers the <strong>Mathematical Sciences</strong> programs and MAT courses for now.
-      Timetable answers use <strong>sample data</strong>, not real offerings. Always confirm plans with an
-      <a id="advisor-link" href="#" target="_blank" rel="noopener">academic advisor</a>.
-      Don't share personal information (student number, grades) in your questions.
-    </section>
+  <div id="view-chat" class="layout">
+    <main>
+      <section class="notice">
+        Waypoint covers the <strong>Mathematical Sciences</strong> programs and MAT courses for now.
+        Timetable answers use <strong>sample data</strong>, not real offerings. Always confirm plans with an
+        <a id="advisor-link" href="#" target="_blank" rel="noopener">academic advisor</a>.
+        Don't share personal information (student number, grades) in your questions.
+      </section>
 
-    <section id="log" aria-live="polite"></section>
+      <section id="log" aria-live="polite" style="display:flex;flex-direction:column;gap:22px">
+        <div id="empty" class="empty">
+          <div id="empty-pip"></div>
+          <h2>Hi, I'm Pip. What can I help you plan?</h2>
+          <p>Ask about programs, courses, prerequisites or a term plan. Every answer cites the Academic Calendar.</p>
+          <div id="examples">
+            <button type="button" class="example">What are the prerequisites for MAT224, and what does it unlock?</button>
+            <button type="button" class="example">How many credits does the Mathematics major require?</button>
+            <button type="button" class="example">Which MAT or STA courses this winter fit Tue/Thu afternoons?</button>
+          </div>
+        </div>
+      </section>
 
-    <section id="examples">
-      <button class="example">What are the prerequisites for MAT224, and what does it unlock?</button>
-      <button class="example">How many credits does the Mathematics major require?</button>
-      <button class="example">Which MAT or STA courses this winter fit Tue/Thu afternoons?</button>
-    </section>
+      <form id="ask" class="glass">
+        <label for="message" class="sr">Ask Pip</label>
+        <textarea id="message" rows="1" maxlength="2000" placeholder="Sign in with Google to ask a question" disabled></textarea>
+        <button type="submit" id="send" disabled>Ask</button>
+      </form>
+    </main>
 
-    <form id="ask">
-      <textarea id="message" rows="2" maxlength="2000" placeholder="Sign in with Google to ask a question" disabled></textarea>
-      <button type="submit" id="send" disabled>Ask</button>
-    </form>
-  </main>
+    <aside id="sources-panel" class="sources-panel glass" aria-label="Sources">
+      <header><h2>Sources</h2><span class="count" id="sources-count"></span></header>
+      <div id="sources-list"></div>
+      <button type="button" class="more" id="sources-more" hidden aria-expanded="false"></button>
+      <p class="no-sources" id="sources-none">Sources appear here as soon as Pip finds them, before the answer.</p>
+      <p class="note">Covers Mathematical Sciences for now. Timetable is sample data. Student project, not affiliated with U of T.</p>
+    </aside>
+  </div>
 
-  <footer>
-    Built on Google ADK, Vertex AI and Cloud Run. Answers can be wrong: check the cited calendar sections.
-    Waypoint never reads ACORN or transcripts.
+  <div id="view-soon" class="layout" hidden>
+    <main>
+      <section class="soon glass">
+        <div id="soon-pip"></div>
+        <h1 id="soon-title">Coming soon</h1>
+        <p>This part of Waypoint is on the way. Chat works today: ask Pip about courses, prerequisites and plans.</p>
+        <a class="btn primary" href="#/chat">Back to chat</a>
+      </section>
+    </main>
+  </div>
+
+  <aside id="reader" class="glass" aria-label="Source reader" hidden>
+    <div class="reader-bar">
+      <span class="pos" id="reader-pos"></span>
+      <button type="button" class="icon-btn" id="reader-prev" aria-label="Previous source"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button type="button" class="icon-btn" id="reader-next" aria-label="Next source"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+      <button type="button" class="icon-btn" id="reader-close" aria-label="Close source reader"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <nav id="reader-crumb" aria-label="Source location"></nav>
+    <h2 id="reader-title"></h2>
+    <pre id="reader-text"></pre>
+    <div class="why"><strong>Why Pip used this</strong><span id="reader-why"></span></div>
+    <div class="reader-actions">
+      <a class="btn primary" id="reader-official" href="#" target="_blank" rel="noopener">Open on the official calendar</a>
+      <button type="button" class="btn danger" id="reader-mismatch">This source doesn't match</button>
+      <span class="thanks" id="reader-thanks" role="status" hidden>Thanks, that's recorded.</span>
+    </div>
+  </aside>
+
+  <footer class="app-footer">
+    Student project, not affiliated with U of T. Built on Google ADK, Vertex AI and Cloud Run. Answers can be wrong:
+    check the cited calendar sections. Waypoint never reads ACORN or transcripts.
     <nav class="legal"><a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of use</a></nav>
   </footer>
 
-  <script src="/static/app.js"></script>
+  <script type="module" src="/static/app.js"></script>
 </body>
 </html>
