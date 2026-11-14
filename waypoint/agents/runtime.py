@@ -46,6 +46,7 @@ from waypoint.observability.cost import cost_usd
 from waypoint.observability.tracing import ObservabilityPlugin, hash_user, log_request_metrics, setup_tracing
 from waypoint.retrieval.hybrid import HybridRetriever
 from waypoint.safety import COURSE_CODE, flag_unknown_codes, redact_pii, scope_check
+from waypoint.sources import locate_passage
 
 APP_NAME = "waypoint"
 tracer = trace.get_tracer("waypoint")
@@ -403,6 +404,36 @@ class WaypointRuntime:
             for cid in chunk_ids
             if cid in found
         ]
+
+    def source_detail(self, chunk_id: str, claim: str = "") -> dict[str, Any] | None:
+        """Everything the Source reader shows for one chunk: its exact text, the line that backs `claim`
+        (computed from the text, see waypoint/sources.py), and the official calendar URL."""
+        if self.deps is None:
+            return None
+        found = self.deps.retriever.store.get([chunk_id])
+        if not found:
+            return None
+        chunk = found[0]
+        parts = chunk.heading.split(" > ")
+        match = re.match(r"([A-Z]{3}\d{3}[HY]\d)\s+(.*)", parts[-1])
+        passage = locate_passage(chunk.text, claim) if claim else None
+        if passage:
+            why = f"Pip cited this entry for: “{claim.strip()[:240]}”. The highlighted line shares: {', '.join(passage.matched)}."
+        elif claim:
+            why = "Pip retrieved this entry for the question, but no single line matches the claim closely enough to highlight."
+        else:
+            why = "Pip retrieved this entry while searching for your question."
+        return {
+            "chunk_id": chunk.chunk_id,
+            "heading": chunk.heading,
+            "breadcrumb": ["Academic Calendar", *parts],
+            "code": match.group(1) if match else "",
+            "title": match.group(2) if match else parts[-1],
+            "text": chunk.text,
+            "highlight": {"start": passage.start, "end": passage.end} if passage else None,
+            "why": why,
+            "url": chunk.source_url,
+        }
 
     def source_rows(self, chunk_ids: list[str]) -> list[dict[str, Any]]:
         """Rows for the `sources` event: number, course code and title when the chunk is a course, and the

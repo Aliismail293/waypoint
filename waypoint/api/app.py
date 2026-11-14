@@ -72,6 +72,17 @@ class EscalateRequest(BaseModel):
     answer_id: str = Field(default="", max_length=64)
 
 
+class SourceRequest(BaseModel):
+    chunk_id: str = Field(pattern=r"^cal:[a-z0-9-]+#[a-z0-9-]+$", max_length=200)
+    claim: str = Field(default="", max_length=400)  # the answer sentence that cites this chunk (not the question)
+
+
+class SourceMismatchRequest(BaseModel):
+    chunk_id: str = Field(pattern=r"^cal:[a-z0-9-]+#[a-z0-9-]+$", max_length=200)
+    session_id: str = Field(default="", max_length=100)
+    answer_id: str = Field(default="", max_length=64)
+
+
 class DailyLimiter:
     """Per-user daily request cap (in memory, per instance — a cost guard, not a security boundary)."""
 
@@ -125,7 +136,32 @@ def create_app(
 
     @app.get("/api/config")
     def config() -> dict:
-        return {"google_client_id": settings.google_client_id, "advisor_url": settings.advisor_url}
+        return {
+            "google_client_id": settings.google_client_id,
+            "advisor_url": settings.advisor_url,
+            # Local development and the browser smoke test run without Google sign-in; never on Cloud Run.
+            "dev_mode": settings.dev_skip_auth and not settings.on_cloud_run,
+        }
+
+    @app.post("/api/source")
+    async def source(body: SourceRequest, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        detail = await run_in_threadpool(state["runtime"].source_detail, body.chunk_id, body.claim)
+        if detail is None:
+            raise HTTPException(status_code=404, detail="That source isn't in Waypoint's data.")
+        return detail
+
+    @app.post("/api/source-feedback")
+    def source_feedback(body: SourceMismatchRequest, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        record_usage(
+            UsageEvent(
+                type="source_mismatch",
+                user=hash_user(user.user_id),
+                session_id=body.session_id,
+                answer_id=body.answer_id,
+                chunk_id=body.chunk_id,
+            )
+        )
+        return {"ok": True}
 
     @app.post("/api/chat", response_model=ChatResponse)
     async def chat(body: ChatRequest, user: User = Depends(current_user)) -> ChatResponse:  # noqa: B008
