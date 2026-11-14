@@ -92,11 +92,12 @@ def find_route(graph: Graph, target: str, profile: Profile) -> dict[str, Any]:
                 parent[nxt] = current
                 queue.append(nxt)
     missing = [c for c in direct if c not in status]
+    direct_info = [{"code": c, "title": graph.nodes[c]["title"], "status": status.get(c)} for c in direct]
     if target not in parent:
-        return {"state": "no_route", "target": target, "steps": [], "missing": missing}
+        return {"state": "no_route", "target": target, "steps": [], "missing": missing, "prerequisites": direct_info}
     chain = [target]
     while parent[chain[-1]] is not None:
         chain.append(parent[chain[-1]])  # type: ignore[arg-type]
     chain.reverse()
     steps = [{"code": c, "title": graph.nodes[c]["title"], "status": status.get(c)} for c in chain]
-    return {"state": "route", "target": target, "steps": steps, "missing": missing}
+    return {"state": "route", "target": target, "steps": steps, "missing": missing, "prerequisites": direct_info}

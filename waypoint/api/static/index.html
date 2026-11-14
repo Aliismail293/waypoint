@@ -23,7 +23,7 @@
       <a href="#/timetable" data-tab="timetable">Timetable</a>
       <a href="#/history" data-tab="history">History</a>
     </nav>
-    <div id="account"><div id="signin"></div><span id="who" hidden></span></div>
+    <div id="account"><div id="signin"></div><button type="button" id="who" hidden aria-label="Your profile"></button></div>
   </header>
 
   <div id="view-chat" class="layout">
@@ -74,6 +74,41 @@
       </section>
     </main>
   </div>
+
+  <div id="view-map" class="layout wide" hidden>
+    <main>
+      <div class="page-head">
+        <h1>Course map</h1>
+        <span class="pill" id="map-count"></span>
+        <button type="button" class="btn" id="map-all" aria-pressed="false">Show all courses</button>
+        <form id="map-find" class="find">
+          <label for="map-goal" class="sr">Find a route to a course</label>
+          <input id="map-goal" list="map-list" type="text" placeholder="Find a route to… e.g. MAT406" class="glass" autocomplete="off">
+          <datalist id="map-list"></datalist>
+          <button type="submit" class="btn primary">Route</button>
+        </form>
+      </div>
+      <p class="form-error" id="map-error" role="alert"></p>
+      <div class="map-wrap">
+        <div class="glass map-scroll" tabindex="0" aria-label="Course map, scrolls sideways on small screens">
+          <div id="map-canvas" class="map-canvas">Sign in to see the course map.</div>
+        </div>
+        <aside id="map-side" class="glass map-side" aria-label="Selected course"></aside>
+      </div>
+      <div class="legend">
+        <span><i class="sw taken"></i>Taken</span><span><i class="sw now"></i>In progress</span>
+        <span><i class="sw next"></i>Unlocks next</span><span><i class="sw sel"></i>Selected</span>
+        <span class="grow">Only prerequisite links that exist in Waypoint's data are drawn · click any course to route to it</span>
+      </div>
+    </main>
+  </div>
+
+  <div id="view-course" class="layout wide" hidden>
+    <main id="course-root"></main>
+  </div>
+
+  <dialog id="onboard" class="glass modal" aria-label="Set up Waypoint"><div id="onboard-body"></div></dialog>
+  <dialog id="settings" class="glass modal" aria-labelledby="settings-title"><div id="settings-body"></div></dialog>
 
   <aside id="reader" class="glass" aria-label="Source reader" hidden>
     <div class="reader-bar">

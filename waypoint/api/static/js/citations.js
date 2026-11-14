@@ -43,12 +43,21 @@ export function stripPartialCitation(text) {
   return text.replace(/\[c(?:a(?:l(?::[^\]]*)?)?)?$/, "");
 }
 
+// Course codes in answer text become links to the Course page. Only text outside tags is touched.
+export function linkCourseCodes(html) {
+  return html
+    .split(/(<[^>]+>)/)
+    .map((part) => (part.startsWith("<") ? part : part.replace(COURSE_CODE_G, (code) => `<a class="course-link" href="#/course/${code}">${code}</a>`)))
+    .join("");
+}
+
 // Minimal markdown: text is escaped first, then bold, bullets and headings become tags.
 export function renderMarkdown(text, numberOf = new Map()) {
   const html = [];
   let inList = false;
   for (const raw of escapeHtml(stripPartialCitation(text)).split("\n")) {
     const line = raw.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(RUN, (run) => badges(run, numberOf));
+    // (course codes are linked after the line is built, below)
     const bullet = line.match(/^\s*[*-]\s+(.*)$/);
     if (bullet) {
       if (!inList) { html.push("<ul>"); inList = true; }
@@ -61,7 +70,7 @@ export function renderMarkdown(text, numberOf = new Map()) {
     else if (line.trim()) html.push(`<p>${line}</p>`);
   }
   if (inList) html.push("</ul>");
-  return html.join("");
+  return linkCourseCodes(html.join(""));
 }
 
 // The sentence/line of the answer that cites `chunkId`, with markers and markdown removed: sent to the Source reader
@@ -77,4 +86,5 @@ export function claimFor(answer, chunkId) {
     .slice(0, 400);
 }
 
-export const COURSE_CODE = /\b[A-Z]{3}\d{3}[HY]\d\b/g;
+const COURSE_CODE_G = /\b[A-Z]{3}\d{3}[HY]\d\b/g;
+export const COURSE_CODE = COURSE_CODE_G;

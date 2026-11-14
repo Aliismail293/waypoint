@@ -126,3 +126,73 @@ test("claimFor: the answer line that cites the chunk, cleaned", () => {
   assert.equal(claimFor(answer, "cal:m#b"), "MAT223H5 is a prerequisite");
   assert.equal(claimFor(answer, "cal:m#zzz"), "");
 });
+
+// ---- Stage 3: course map and course links ----
+import { edgePath, layoutMap, routeEdges, routeNote, unlockableNext, visibleCodes } from "../../waypoint/api/static/js/map.js";
+import { linkCourseCodes } from "../../waypoint/api/static/js/citations.js";
+
+const node = (code, column, extra = {}) => ({ code, title: code, level: 2, in_data: true, status: null, column, ...extra });
+const NODES = [
+  node("A100", "before", { status: "done" }),
+  node("B200", "now", { status: "now" }),
+  node("C200", "lower"),
+  node("D300", "upper"),
+  node("E400", "upper"),
+  node("F100", "lower"),
+  node("X101", "lower", { in_data: false }),
+];
+const EDGES = [
+  { from: "A100", to: "B200" },
+  { from: "B200", to: "C200" },
+  { from: "C200", to: "D300" },
+  { from: "D300", to: "E400" },
+  { from: "X101", to: "E400" },
+];
+
+test("visibleCodes: a student with courses sees them plus two hops onward; no courses shows everything in the data", () => {
+  assert.deepEqual([...visibleCodes(NODES, EDGES)].sort(), ["A100", "B200", "C200", "D300"]);
+  assert.ok(visibleCodes(NODES, EDGES, { showAll: true }).has("F100"));
+  assert.ok(!visibleCodes(NODES, EDGES, { showAll: true }).has("X101")); // outside the data: only drawn when needed
+  const empty = NODES.map((n) => ({ ...n, status: null }));
+  assert.equal(visibleCodes(empty, EDGES).size, 6);
+  assert.ok(visibleCodes(NODES, EDGES, { keep: "E400" }).has("E400")); // a selected course is always shown
+});
+
+test("layoutMap: columns left to right, rows sorted, headers carry counts", () => {
+  const layout = layoutMap(NODES, new Set(["A100", "B200", "C200", "D300", "E400"]));
+  const a = layout.positions.get("A100");
+  const b = layout.positions.get("B200");
+  assert.ok(a.x < b.x && b.x < layout.positions.get("C200").x && layout.positions.get("C200").x < layout.positions.get("D300").x);
+  assert.ok(layout.positions.get("D300").y < layout.positions.get("E400").y);
+  assert.equal(layout.headers.find((h) => h.id === "upper").count, 2);
+  assert.ok(!layout.positions.has("F100"));
+});
+
+test("edgePath: a curve between columns, a loop inside one column", () => {
+  assert.match(edgePath({ x: 24, y: 36 }, { x: 304, y: 108 }), /^M214 63C/);
+  assert.match(edgePath({ x: 24, y: 36 }, { x: 24, y: 108 }), /^M214 63C258 63 258 135 214 135$/);
+});
+
+test("unlockableNext: only courses whose in-data prerequisites are all the student's", () => {
+  assert.deepEqual([...unlockableNext(NODES, EDGES)], ["C200"]);
+});
+
+test("routeEdges / routeNote: edges follow the steps; every state has an honest note", () => {
+  const route = { state: "route", steps: [{ code: "A100" }, { code: "B200" }, { code: "C200" }] };
+  assert.deepEqual(routeEdges(route), [{ from: "A100", to: "B200" }, { from: "B200", to: "C200" }]);
+  assert.deepEqual(routeEdges({ state: "no_route", steps: [] }), []);
+  assert.match(routeNote("no_route"), /None of this course's prerequisite links/);
+  assert.match(routeNote("no_links"), /no prerequisite links/);
+  assert.match(routeNote("route"), /only the prerequisite links in its data/i);
+});
+
+test("linkCourseCodes: links codes in text, never inside tags", () => {
+  const html = linkCourseCodes('<p>Take MAT224H5 <button data-x="MAT101H5">1</button></p>');
+  assert.match(html, /<a class="course-link" href="#\/course\/MAT224H5">MAT224H5<\/a>/);
+  assert.ok(html.includes('data-x="MAT101H5"'));
+  assert.ok(!html.includes('data-x="<a'));
+});
+
+test("renderMarkdown links course codes", () => {
+  assert.match(renderMarkdown("**MAT224H5** needs MAT223H5", new Map()), /href="#\/course\/MAT223H5"/);
+});

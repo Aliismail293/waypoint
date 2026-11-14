@@ -2,9 +2,13 @@
 // to the API as a Bearer token. The token lives only in memory. Plain ES modules, no build step (see docs/DESIGN.md).
 import { claimFor, escapeHtml, renderMarkdown } from "./js/citations.js";
 import { pipSvg } from "./js/pip.js";
+import { showCourse, wireCourse } from "./js/course-view.js";
+import { invalidateMap, showMap, wireMap } from "./js/map-view.js";
+import { onProfileChange, openSettings, startOnboarding } from "./js/profile-view.js";
+import { api, authHeaders, canAsk, errorFrom, postJson, session } from "./js/session.js";
 import { initialStream, readEvents, reduce, stepsSummary } from "./js/stream.js";
 
-const app = { idToken: null, sessionId: null, advisorUrl: "#", devMode: false, busy: false, turn: null };
+const app = { sessionId: null, advisorUrl: "#", busy: false, turn: null };
 const $ = (id) => document.getElementById(id);
 
 const CHECK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E7A43" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
@@ -12,51 +16,44 @@ const SPIN = '<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill=
 const THUMB_UP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
 const THUMB_DOWN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>';
 
-// ---- Tabs (hash routes; only Chat is built, the rest are "coming soon") ----
+// ---- Tabs (hash routes: #/chat, #/map[/CODE], #/course/CODE; plan, timetable and history are "coming soon") ----
 const TABS = { chat: "Chat", map: "Course map", plan: "My plan", timetable: "Timetable", history: "History" };
+const VIEWS = ["chat", "soon", "map", "course"];
 
 function route() {
-  const tab = (location.hash.match(/^#\/(\w+)/) || [])[1];
-  const current = tab in TABS ? tab : "chat";
-  $("view-chat").hidden = current !== "chat";
-  $("view-soon").hidden = current === "chat";
-  if (current !== "chat") {
-    closeReader();
+  const [, tab = "chat", arg] = location.hash.match(/^#\/(\w+)(?:\/([A-Za-z0-9]+))?/) || [];
+  const current = tab === "course" ? "course" : tab in TABS ? tab : "chat";
+  const view = current === "chat" || current === "map" || current === "course" ? current : "soon";
+  for (const v of VIEWS) $(`view-${v}`).hidden = v !== view;
+  if (view !== "chat") closeReader();
+  if (view === "soon") {
     $("soon-title").textContent = `${TABS[current]} is coming soon`;
     $("soon-pip").innerHTML = pipSvg("idle", 84);
   }
+  if (view === "map" && canAsk()) showMap(arg ? arg.toUpperCase() : null);
+  if (view === "course" && canAsk() && arg) showCourse(arg.toUpperCase());
+  const active = current === "course" ? "map" : current; // course pages hang off the map tab
   document.querySelectorAll(".tabs a").forEach((a) => {
-    if (a.dataset.tab === current) a.setAttribute("aria-current", "page");
+    if (a.dataset.tab === active) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   });
-  document.title = `${TABS[current]} · Waypoint`;
+  document.title = `${current === "course" && arg ? arg.toUpperCase() : TABS[current]} · Waypoint`;
 }
 
 // ---- Auth ----
-function authHeaders() {
-  const headers = { "Content-Type": "application/json" };
-  if (app.idToken) headers.Authorization = `Bearer ${app.idToken}`;
-  return headers;
-}
-const postJson = (path, body) => fetch(path, { method: "POST", headers: authHeaders(), body: JSON.stringify(body) });
-const canAsk = () => Boolean(app.idToken) || app.devMode;
-
-async function errorFrom(response) {
-  const body = await response.json().catch(() => ({}));
-  return new Error(body.detail || `Request failed (${response.status})`);
-}
-
-function signedIn(label) {
+async function signedIn(label) {
   $("signin").hidden = true;
   $("who").hidden = false;
   $("who").textContent = label.slice(0, 1).toUpperCase();
-  $("who").title = `Signed in as ${label}`;
+  $("who").title = `Signed in as ${label}. Open your profile`;
   $("message").placeholder = "Ask about programs, courses, prerequisites or a plan…";
   setBusy(false);
+  route(); // a deep link (#/course/MAT224H5) can load now that the API is reachable
+  await checkProfile();
 }
 
 function onSignIn(response) {
-  app.idToken = response.credential;
+  session.idToken = response.credential;
   const payload = JSON.parse(atob(response.credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
   signedIn(payload.given_name || payload.email || "You");
 }
@@ -169,7 +166,7 @@ function actionsFor(turn) {
   const bar = document.createElement("div");
   bar.className = "actions";
   const codes = [...new Set(turn.stream.text.match(/\b[A-Z]{3}\d{3}[HY]\d\b/g) || [])];
-  const mapBtn = codes.length ? `<a class="btn primary" href="#/map">See it on the course map</a>` : "";
+  const mapBtn = codes.length ? `<a class="btn primary" href="#/map/${escapeHtml(codes[0])}">See it on the course map</a>` : "";
   const planBtn = codes.length ? `<a class="btn" href="#/plan">Add ${escapeHtml(codes[0])} to my plan</a>` : "";
   bar.innerHTML =
     mapBtn + planBtn +
@@ -358,13 +355,30 @@ function turnFor(el) {
 }
 
 // ---- Boot ----
+// First sign-in: no profile yet, so offer onboarding (skippable). The map and course pages read the profile.
+async function checkProfile() {
+  try {
+    const profile = await api("GET", "/api/profile");
+    if (!profile.onboarded) await startOnboarding();
+  } catch {
+    // the profile is an extra: chat works without it
+  }
+}
+
+onProfileChange(() => invalidateMap());
+$("who").addEventListener("click", () => openSettings());
+window.addEventListener("waypoint:ask", (e) => {
+  if (location.hash !== "#/chat") location.hash = "#/chat";
+  ask(e.detail);
+});
+
 async function init() {
   $("empty-pip").innerHTML = pipSvg("idle", 84);
   const config = await (await fetch("/api/config")).json();
   app.advisorUrl = config.advisor_url;
   $("advisor-link").href = config.advisor_url;
   if (config.dev_mode) {
-    app.devMode = true;
+    session.devMode = true;
     signedIn("Dev");
     return;
   }
@@ -395,5 +409,7 @@ $("message").addEventListener("keydown", (e) => {
 });
 document.querySelectorAll(".example").forEach((b) => b.addEventListener("click", () => ask(b.textContent)));
 window.addEventListener("hashchange", route);
+wireMap();
+wireCourse();
 route();
 init();
