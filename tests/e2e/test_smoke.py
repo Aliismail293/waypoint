@@ -7,6 +7,7 @@ skipped when they are missing so the default test run and CI stay dependency-fre
 import socket
 import threading
 import time
+from pathlib import Path
 
 import pytest
 import uvicorn
@@ -218,7 +219,7 @@ def test_pin_answer_find_it_in_history_and_export_the_pack(page, base_url):
     with page.expect_download() as download:
         page.get_by_role("button", name="Download PDF").click()
     path = download.value.path()
-    assert open(path, "rb").read(5) == b"%PDF-"
+    assert Path(path).read_bytes()[:5] == b"%PDF-"
     page.get_by_role("button", name="Copy as email").click()
     page.locator("#pack-email").wait_for(state="visible")
     assert "Q: What are the prerequisites for MAT224H5?" in page.locator("#pack-email").input_value()
