@@ -33,14 +33,14 @@ route:
 - "timetable": asks for sections, meeting times, days, rooms or schedule fit of courses in a term.
 - "planning": asks for a plan, a term-by-term schedule, what to take to finish a program or graduate by a date.
 - "unsure": spans several of these, needs earlier conversation to understand, is off-topic, or you are not sure.
-specialist (only for simple_lookup, otherwise ""): "course" for facts about a specific course code or the
+specialist (only for simple_lookup, otherwise "none"): "course" for facts about a specific course code or the
 course catalog, "policy" for program requirements and academic rules/policies."""
 
 ROUTER_SCHEMA = types.Schema(
     type=types.Type.OBJECT,
     properties={
         "route": types.Schema(type=types.Type.STRING, enum=[*CATEGORIES, "unsure"]),
-        "specialist": types.Schema(type=types.Type.STRING, enum=["course", "policy", ""]),
+        "specialist": types.Schema(type=types.Type.STRING, enum=["course", "policy", "none"]),
     },
     required=["route", "specialist"],
 )
