@@ -92,7 +92,7 @@ def test_tabs_and_phone_width(page, base_url):
     skip_onboarding(page)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     page.get_by_role("link", name="History").click()
-    page.get_by_role("heading", name="History is coming soon").wait_for()
+    page.get_by_role("heading", name="History", exact=True).wait_for()
     assert page.get_by_role("link", name="History").get_attribute("aria-current") == "page"
 
 
@@ -188,3 +188,37 @@ def test_plan_critic_catches_a_broken_prerequisite_and_timetable_fixes_a_clash(p
     page.get_by_role("button", name="Switch MAT224H5 to LEC0101").click()
     page.get_by_text("No clashes").first.wait_for()
     assert page.locator(".tt-block.clash").count() == 0
+
+
+def test_pin_answer_find_it_in_history_and_export_the_pack(page, base_url):
+    page.goto(base_url)
+    skip_onboarding(page)
+    page.get_by_label("Ask Pip").fill("What are the prerequisites for MAT224H5?")
+    page.get_by_role("button", name="Ask", exact=True).click()
+    page.get_by_role("button", name="Pin this answer").click()
+    page.get_by_text("Pinned. Find it in").wait_for()
+
+    page.get_by_role("navigation", name="Main").get_by_role("link", name="History").click()
+    page.get_by_role("heading", name="PINNED").wait_for()
+    page.get_by_role("button", name="Prerequisites").click()
+    assert page.locator(".entry").count() == 1
+    page.get_by_role("button", name="Plans").click()
+    page.get_by_text("Nothing matches").wait_for()
+    page.get_by_role("button", name="All").click()
+    page.get_by_label("Search your questions and answers").fill("zzzz-not-there")
+    page.get_by_text("Nothing matches").wait_for()
+    page.get_by_label("Search your questions and answers").fill("MAT224")
+    page.locator(".entry").wait_for()
+
+    page.locator(".entry summary").click()  # expands: the answer with its citation badge
+    page.locator(".entry .cite").first.click()
+    page.get_by_role("complementary", name="Source reader").wait_for()
+    page.keyboard.press("Escape")
+
+    with page.expect_download() as download:
+        page.get_by_role("button", name="Download PDF").click()
+    path = download.value.path()
+    assert open(path, "rb").read(5) == b"%PDF-"
+    page.get_by_role("button", name="Copy as email").click()
+    page.locator("#pack-email").wait_for(state="visible")
+    assert "Q: What are the prerequisites for MAT224H5?" in page.locator("#pack-email").input_value()

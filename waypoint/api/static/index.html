@@ -64,17 +64,6 @@
     </aside>
   </div>
 
-  <div id="view-soon" class="layout" hidden>
-    <main>
-      <section class="soon glass">
-        <div id="soon-pip"></div>
-        <h1 id="soon-title">Coming soon</h1>
-        <p>This part of Waypoint is on the way. Chat works today: ask Pip about courses, prerequisites and plans.</p>
-        <a class="btn primary" href="#/chat">Back to chat</a>
-      </section>
-    </main>
-  </div>
-
   <div id="view-map" class="layout wide" hidden>
     <main>
       <div class="page-head">
@@ -113,6 +102,29 @@
 
   <div id="view-timetable" class="layout wide" hidden>
     <main id="tt-root" class="tt-layout"></main>
+  </div>
+
+  <div id="view-history" class="layout wide" hidden>
+    <main>
+      <div class="page-head">
+        <h1>History</h1>
+        <form class="find grow" role="search" onsubmit="return false">
+          <label for="history-search" class="sr">Search your questions and answers</label>
+          <input id="history-search" type="search" placeholder="Search your questions and answers" class="glass" autocomplete="off">
+        </form>
+      </div>
+      <div id="history-filters" class="chiprow" role="group" aria-label="Filter"></div>
+      <div id="history-list"></div>
+    </main>
+    <aside class="glass pack" aria-label="Advisor meeting pack">
+      <div><h2>Advisor meeting pack</h2><p class="muted">One page to bring to your appointment, with every claim linked to its source.</p></div>
+      <fieldset id="pack-options"><legend class="sr">Include in the pack</legend></fieldset>
+      <div class="ob-nav"><button type="button" class="btn primary" id="pack-pdf">Download PDF</button><button type="button" class="btn" id="pack-copy">Copy as email</button></div>
+      <p id="pack-status" role="status"></p>
+      <label class="sr" for="pack-email">Email text</label>
+      <textarea id="pack-email" rows="10" readonly hidden></textarea>
+      <p class="muted">Student project, not affiliated with U of T. Your history stays in your account; delete it any time in your profile settings.</p>
+    </aside>
   </div>
 
   <dialog id="onboard" class="glass modal" aria-label="Set up Waypoint"><div id="onboard-body"></div></dialog>

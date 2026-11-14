@@ -383,6 +383,34 @@ select, .add-row input { min-height: 44px; border-radius: 12px; border: 1px soli
   .critic, .tt-side { max-width: none; flex-basis: 100%; }
 }
 
+/* Stage 5: history and the advisor pack */
+#view-history > main { flex: 999 1 520px; }
+.layout > .pack { flex: 1 1 340px; max-width: 420px; }
+.find.grow { flex: 1 1 280px; margin-left: 0; }
+.find.grow input { width: 100%; }
+.chiprow { display: flex; flex-wrap: wrap; gap: 8px; }
+.chipbtn { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.9); background: rgba(255, 255, 255, 0.68); font: inherit; font-weight: 600; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+.chipbtn[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+.group { margin: 14px 0 6px; }
+.entry { border-radius: 18px; padding: 0; margin-bottom: 10px; }
+.entry summary { list-style: none; cursor: pointer; display: flex; gap: 14px; align-items: flex-start; padding: 14px 18px; min-height: 44px; }
+.entry summary::-webkit-details-marker { display: none; }
+.entry summary svg { flex: none; margin-top: 2px; }
+.meta-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.meta-col strong { overflow-wrap: anywhere; }
+.entry-body { padding: 0 18px 16px 52px; display: flex; flex-direction: column; gap: 10px; overflow-wrap: anywhere; }
+.entry-body p { margin: 0; }
+.pack { flex: 1 1 340px; max-width: 420px; align-self: flex-start; border-radius: 24px; padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+.pack h2 { margin: 0; font-size: 18px; font-weight: 800; }
+.pack p { margin: 4px 0 0; }
+#pack-options { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.check { display: flex; gap: 10px; align-items: center; min-height: 32px; }
+.check input { width: 18px; height: 18px; accent-color: var(--primary); }
+#pack-email { width: 100%; border-radius: 12px; border: 1px solid var(--line-2); padding: 10px; font: inherit; font-size: 13px; }
+#history-list .empty { padding: 24px; }
+.feedback button[data-pin][aria-pressed="true"] { color: #b45309; }
+.feedback button[data-pin][aria-pressed="true"] svg { fill: #f59e0b; }
+
 /* Reduced motion: stop everything and show frame A */
 @media (prefers-reduced-motion: reduce) {
   .pip-fa, .pip-fb, .pip-ma, .pip-mb, .pip-bob, .pip-blink, .spin, .link.route { animation: none; }

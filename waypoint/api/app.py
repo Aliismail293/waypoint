@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -33,8 +33,10 @@ from waypoint.api.auth import User, authenticate
 from waypoint.config import Settings, get_settings
 from waypoint.course_page import course_page
 from waypoint.graph import build_graph, find_route
+from waypoint.history import FILTERS, HistoryStore, SourceRef, Turn, history_store, matches, record, topic_of
 from waypoint.mcp.timetable.adapter import SampleFileSource, TimetableAdapter
 from waypoint.observability.tracing import hash_user
+from waypoint.pack import build_pack, pack_email, pack_pdf
 from waypoint.plans import (
     Plan,
     PlanError,
@@ -47,6 +49,7 @@ from waypoint.plans import (
     tidy,
 )
 from waypoint.profile import Profile, ProfileError, ProfileStore, profile_context, profile_store, validate_profile
+from waypoint.safety import redact_pii
 from waypoint.timetable_check import timetable_view
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -126,6 +129,17 @@ class TimetableBody(BaseModel):
     section_ids: list[str] = Field(default_factory=list, max_length=40)
 
 
+class PinBody(BaseModel):
+    pinned: bool = True
+
+
+class PackBody(BaseModel):
+    plan_id: str | None = Field(default=None, max_length=20)
+    include_pinned: bool = True
+    include_critic: bool = True
+    timetable_term: str | None = Field(default=None, max_length=20)
+
+
 class DailyLimiter:
     """Per-user daily request cap (in memory, per instance — a cost guard, not a security boundary)."""
 
@@ -146,9 +160,16 @@ def create_app(
     usage: UsageStore | None = None,
     profiles: ProfileStore | None = None,
     plans: PlanStore | None = None,
+    history: HistoryStore | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
-    state: dict[str, Any] = {"runtime": runtime, "usage": usage, "profiles": profiles, "plans": plans}
+    state: dict[str, Any] = {
+        "runtime": runtime,
+        "usage": usage,
+        "profiles": profiles,
+        "plans": plans,
+        "history": history,
+    }
     timetable = TimetableAdapter(SampleFileSource())  # synthetic sample data, labelled wherever it is shown
     limiter = DailyLimiter(settings.max_requests_per_user_per_day)
 
@@ -162,6 +183,8 @@ def create_app(
             state["profiles"] = profile_store(settings)
         if state["plans"] is None:
             state["plans"] = plan_store(settings)
+        if state["history"] is None:
+            state["history"] = history_store(settings)
         yield
 
     app = FastAPI(title="Waypoint", lifespan=lifespan)
@@ -197,6 +220,24 @@ def create_app(
             logging.exception("profile not loaded")
             return ""
 
+    def record_turn(
+        user: User, answer_id: str, session_id: str, question: str, answer: str, citations: list, category: str
+    ) -> None:
+        """Keep the answered question in the student's History. Never allowed to break an answer."""
+        try:
+            turn = Turn(
+                id=answer_id,
+                session_id=session_id,
+                question=redact_pii(question)[0][:2000],
+                answer=answer[:6000],
+                category=category or "",
+                sources=[SourceRef(**c) for c in citations],
+            )
+            turns = state["history"].get(user.user_id)
+            state["history"].put(user.user_id, record(turns, turn))
+        except Exception:
+            logging.exception("history not recorded")
+
     @app.get("/api/config")
     def config() -> dict:
         return {
@@ -224,6 +265,7 @@ def create_app(
     async def delete_profile(user: User = Depends(current_user)) -> dict:  # noqa: B008
         await run_in_threadpool(state["profiles"].delete, user.user_id)
         await run_in_threadpool(state["plans"].delete, user.user_id)
+        await run_in_threadpool(state["history"].delete, user.user_id)
         return {"ok": True}
 
     @app.get("/api/courses")
@@ -374,6 +416,72 @@ def create_app(
         await save_plans(user, plans)
         return view
 
+    # ---- history and the advisor pack ----
+
+    @app.get("/api/history")
+    async def get_history(q: str = "", filter: str = "all", user: User = Depends(current_user)) -> dict:  # noqa: A002, B008
+        if filter not in FILTERS:
+            raise HTTPException(status_code=422, detail="Unknown filter.")
+        turns = await run_in_threadpool(state["history"].get, user.user_id)
+        shown = [t for t in turns if matches(t, q, filter)]
+        return {
+            "turns": [t.model_dump() | {"topic": topic_of(t)} for t in shown],
+            "total": len(turns),
+            "pinned": sum(1 for t in turns if t.pinned),
+        }
+
+    @app.post("/api/history/{turn_id}/pin")
+    async def pin_turn(turn_id: str, body: PinBody, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        turns = await run_in_threadpool(state["history"].get, user.user_id)
+        turn = next((t for t in turns if t.id == turn_id), None)
+        if turn is None:
+            raise HTTPException(status_code=404, detail="That answer isn't in your history.")
+        turn.pinned = body.pinned
+        await run_in_threadpool(state["history"].put, user.user_id, turns)
+        return {"id": turn_id, "pinned": turn.pinned}
+
+    @app.delete("/api/history/{turn_id}")
+    async def delete_turn(turn_id: str, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        turns = await run_in_threadpool(state["history"].get, user.user_id)
+        await run_in_threadpool(state["history"].put, user.user_id, [t for t in turns if t.id != turn_id])
+        return {"ok": True}
+
+    async def gather_pack(user: User, body: PackBody):
+        profile = await load_profile(user)
+        plans = await load_plans(user)
+        plan = None
+        if body.plan_id:
+            plan = await with_review(user, find_plan(plans, body.plan_id))
+        turns = (
+            [t for t in await run_in_threadpool(state["history"].get, user.user_id) if t.pinned]
+            if body.include_pinned
+            else []
+        )
+        view = None
+        if body.timetable_term and body.plan_id:
+            chosen = find_plan(plans, body.plan_id)
+            courses = next((t.courses for t in chosen.terms if t.term == body.timetable_term), [])
+            view = await run_in_threadpool(
+                timetable_view, timetable, courses, body.timetable_term, chosen.timetable.get(body.timetable_term, [])
+            )
+        return build_pack(
+            profile=profile.model_dump(), plan=plan, turns=turns, timetable=view, include_critic=body.include_critic
+        )
+
+    @app.post("/api/pack/pdf")
+    async def pack_pdf_endpoint(body: PackBody, user: User = Depends(current_user)) -> Response:  # noqa: B008
+        pack = await gather_pack(user, body)
+        data = await run_in_threadpool(pack_pdf, pack)
+        return Response(
+            data,
+            media_type="application/pdf",
+            headers={"Content-Disposition": 'attachment; filename="waypoint-advisor-pack.pdf"'},
+        )
+
+    @app.post("/api/pack/email")
+    async def pack_email_endpoint(body: PackBody, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        return {"text": pack_email(await gather_pack(user, body))}
+
     @app.post("/api/source")
     async def source(body: SourceRequest, user: User = Depends(current_user)) -> dict:  # noqa: B008
         detail = await run_in_threadpool(state["runtime"].source_detail, body.chunk_id, body.claim)
@@ -406,6 +514,16 @@ def create_app(
         answer_id = new_answer_id()
         # Firestore's client is blocking; keep it off the event loop.
         await run_in_threadpool(record_usage, question_event(user.user_id, answer.session_id, answer_id, metrics))
+        await run_in_threadpool(
+            record_turn,
+            user,
+            answer_id,
+            answer.session_id,
+            body.message,
+            answer.text,
+            [c.model_dump() for c in citations],
+            str(metrics.get("category") or ""),
+        )
         return ChatResponse(
             answer=answer.text,
             citations=citations,
@@ -431,6 +549,16 @@ def create_app(
                         record_usage, question_event(user.user_id, answer.session_id, answer_id, metrics)
                     )
                     citations = [Citation(**c).model_dump() for c in rt.citation_sources(answer.citations)]
+                    await run_in_threadpool(
+                        record_turn,
+                        user,
+                        answer_id,
+                        answer.session_id,
+                        body.message,
+                        answer.text,
+                        citations,
+                        str(metrics.get("category") or ""),
+                    )
                     # `final` carries the checked text (invalid citations removed, PII redacted): the UI swaps it in.
                     yield sse(
                         "final",

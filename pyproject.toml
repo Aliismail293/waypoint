@@ -23,6 +23,7 @@ dependencies = [
     "opentelemetry-sdk>=1.39",
     "opentelemetry-exporter-gcp-trace>=1.9",
     "opentelemetry-exporter-otlp-proto-http>=1.39",
+    "fpdf2>=2.9.0",
 ]
 
 [dependency-groups]

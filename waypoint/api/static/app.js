@@ -3,6 +3,7 @@
 import { claimFor, escapeHtml, renderMarkdown } from "./js/citations.js";
 import { pipSvg } from "./js/pip.js";
 import { showCourse, wireCourse } from "./js/course-view.js";
+import { showHistory, wireHistory } from "./js/history-view.js";
 import { invalidateMap, showMap, wireMap } from "./js/map-view.js";
 import { invalidatePlans, showPlan, wirePlan } from "./js/plan-view.js";
 import { showTimetable, wireTimetable } from "./js/timetable-view.js";
@@ -15,27 +16,25 @@ const $ = (id) => document.getElementById(id);
 
 const CHECK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E7A43" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
 const SPIN = '<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4338CA" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>';
+const BOOKMARK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
 const THUMB_UP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
 const THUMB_DOWN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>';
 
-// ---- Tabs (hash routes: #/chat, #/map[/CODE], #/course/CODE; plan, timetable and history are "coming soon") ----
+// ---- Tabs (hash routes: #/chat, #/map[/CODE], #/course/CODE, #/plan, #/timetable, #/history) ----
 const TABS = { chat: "Chat", map: "Course map", plan: "My plan", timetable: "Timetable", history: "History" };
-const VIEWS = ["chat", "soon", "map", "course", "plan", "timetable"];
+const VIEWS = ["chat", "map", "course", "plan", "timetable", "history"];
 
 function route() {
   const [, tab = "chat", arg] = location.hash.match(/^#\/(\w+)(?:\/([A-Za-z0-9]+))?/) || [];
   const current = tab === "course" ? "course" : tab in TABS ? tab : "chat";
-  const view = ["chat", "map", "course", "plan", "timetable"].includes(current) ? current : "soon";
+  const view = current;
   for (const v of VIEWS) $(`view-${v}`).hidden = v !== view;
   if (view !== "chat") closeReader();
-  if (view === "soon") {
-    $("soon-title").textContent = `${TABS[current]} is coming soon`;
-    $("soon-pip").innerHTML = pipSvg("idle", 84);
-  }
   if (view === "map" && canAsk()) showMap(arg ? arg.toUpperCase() : null);
   if (view === "course" && canAsk() && arg) showCourse(arg.toUpperCase());
   if (view === "plan" && canAsk()) showPlan();
   if (view === "timetable" && canAsk()) showTimetable();
+  if (view === "history" && canAsk()) showHistory();
   const active = current === "course" ? "map" : current; // course pages hang off the map tab
   document.querySelectorAll(".tabs a").forEach((a) => {
     if (a.dataset.tab === active) a.setAttribute("aria-current", "page");
@@ -187,7 +186,7 @@ function actionsFor(turn) {
   bar.innerHTML =
     mapBtn + planBtn + draftBtn +
     `<a class="btn" id="advisor-${ids.answer_id}" href="${escapeHtml(app.advisorUrl)}" target="_blank" rel="noopener">Ask an advisor</a>` +
-    `<span class="feedback"><button type="button" data-rating="1" aria-label="Good answer" aria-pressed="false">${THUMB_UP}</button>` +
+    `<span class="feedback"><button type="button" data-pin aria-label="Pin this answer" aria-pressed="false">${BOOKMARK}</button><button type="button" data-rating="1" aria-label="Good answer" aria-pressed="false">${THUMB_UP}</button>` +
     `<button type="button" data-rating="-1" aria-label="Bad answer" aria-pressed="false">${THUMB_DOWN}</button></span>`;
   const say = (html) => {
     let line = bar.parentElement.querySelector(".plan-note");
@@ -225,9 +224,21 @@ function actionsFor(turn) {
       say(escapeHtml(err.message));
     }
   });
-  bar.querySelectorAll(".feedback button").forEach((button) =>
+  bar.querySelector("[data-pin]").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    const pinned = button.getAttribute("aria-pressed") !== "true";
+    try {
+      await api("POST", `/api/history/${ids.answer_id}/pin`, { pinned });
+      button.setAttribute("aria-pressed", String(pinned));
+      button.setAttribute("aria-label", pinned ? "Unpin this answer" : "Pin this answer");
+      say(pinned ? 'Pinned. Find it in <a href="#/history">History</a>.' : "Unpinned.");
+    } catch (err) {
+      say(escapeHtml(err.message));
+    }
+  });
+  bar.querySelectorAll(".feedback button:not([data-pin])").forEach((button) =>
     button.addEventListener("click", () => {
-      bar.querySelectorAll(".feedback button").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+      bar.querySelectorAll(".feedback button:not([data-pin])").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
       postJson("/api/feedback", { ...ids, rating: Number(button.dataset.rating) }).catch(() => {});
     }),
   );
@@ -397,15 +408,15 @@ $("reader-mismatch").addEventListener("click", async () => {
 // Citation badges inside answers and rows in the Sources panel both open the reader.
 document.addEventListener("click", (e) => {
   const badge = e.target.closest(".cite, .source-row");
-  if (!badge) return;
+  if (!badge || badge.closest("#view-plan, #view-history")) return; // those pages open their own sources
   const turn = badge.closest(".turn-pip") ? turnFor(badge) : app.turn;
   if (turn) openReader(turn, Number(badge.dataset.source), badge);
 });
 // The critic report on the plan page opens its citations in the same Source reader.
 window.addEventListener("waypoint:open-source", (e) => {
-  const { sources, chunkId } = e.detail;
+  const { sources, chunkId, n } = e.detail;
   const turn = { plan: true, stream: { sources, text: "", final: {} } };
-  const source = sources.find((s) => s.chunk_id === chunkId);
+  const source = chunkId ? sources.find((s) => s.chunk_id === chunkId) : sources.find((s) => s.n === n);
   if (source) openReader(turn, source.n);
 });
 const turns = new WeakMap();
@@ -475,5 +486,6 @@ wireMap();
 wireCourse();
 wirePlan();
 wireTimetable();
+wireHistory();
 route();
 init();

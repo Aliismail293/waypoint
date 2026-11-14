@@ -229,3 +229,21 @@ test("blockStyle: position follows the clock (8:00 is the top of the grid)", () 
   const [b] = gridBlocks([sec("a", "X", "Lecture", "1", [m("Monday", "09:00", "11:00")])]);
   assert.match(blockStyle(b), /top:48px;height:94px/);
 });
+
+// ---- Stage 5: history grouping ----
+import { dateGroup, groupTurns } from "../../waypoint/api/static/js/history-view.js";
+
+test("dateGroup: today, yesterday, this week, earlier", () => {
+  const now = new Date(2026, 10, 14, 15, 0);
+  assert.equal(dateGroup(new Date(2026, 10, 14, 1, 0).toISOString(), now), "TODAY");
+  assert.equal(dateGroup(new Date(2026, 10, 13, 23, 0).toISOString(), now), "YESTERDAY");
+  assert.equal(dateGroup(new Date(2026, 10, 10, 12, 0).toISOString(), now), "EARLIER THIS WEEK");
+  assert.equal(dateGroup(new Date(2026, 9, 1, 12, 0).toISOString(), now), "EARLIER");
+});
+
+test("groupTurns: pinned answers come first, then the rest by date", () => {
+  const now = new Date(2026, 10, 14, 15, 0);
+  const t = (id, d, pinned = false) => ({ id, ts: new Date(2026, 10, d, 12, 0).toISOString(), pinned });
+  const groups = groupTurns([t("a", 14), t("b", 14, true), t("c", 13), t("d", 1)], now);
+  assert.deepEqual(groups.map((g) => [g.label, g.turns.map((x) => x.id)]), [["PINNED", ["b"]], ["TODAY", ["a"]], ["YESTERDAY", ["c"]], ["EARLIER", ["d"]]]);
+});
