@@ -1,6 +1,7 @@
 """Live probe: print each stream event with its arrival time for one question (real Vertex calls, a few cents).
 
-WAYPOINT_LLM=vertex WAYPOINT_EMBEDDINGS=vertex WAYPOINT_ANSWER_CACHE=off uv run python scripts/probe_stream.py "question"
+Set WAYPOINT_LLM=vertex, WAYPOINT_EMBEDDINGS=vertex and WAYPOINT_ANSWER_CACHE=off, then:
+    uv run python scripts/probe_stream.py "question"
 """
 
 import asyncio
