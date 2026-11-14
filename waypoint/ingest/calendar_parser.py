@@ -49,7 +49,8 @@ class Course:
     def to_row(self) -> dict:
         row = asdict(self)
         row["credits"] = self.credits
-        row["level"] = int(self.code[3])
+        # UTM/St. George codes use the digit (MAT224H5 -> 2); UTSC uses a letter (MATB24H3 -> B -> 2)
+        row["level"] = int(self.code[3]) if self.code[3].isdigit() else "ABCD".index(self.code[3]) + 1
         row["department"] = self.code[:3]
         row["other"] = "; ".join(f"{k}: {v}" for k, v in self.other.items())
         return row
@@ -93,6 +94,7 @@ class Chunk:
 class ParsedPage:
     path: str
     title: str
+    base_url: str = BASE_URL
     courses: list[Course] = field(default_factory=list)
     programs: list[Program] = field(default_factory=list)
     chunks: list[Chunk] = field(default_factory=list)
@@ -147,11 +149,11 @@ def make_chunks(doc_id: str, anchor: str, kind: str, heading: str, body: str, ur
     return chunks
 
 
-def parse_page(path: str, html: str) -> ParsedPage:
+def parse_page(path: str, html: str, base_url: str = BASE_URL) -> ParsedPage:
     soup = BeautifulSoup(html, "html.parser")
     title_tag = soup.select_one("h1.page-title")
     title = title_tag.get_text(strip=True) if title_tag else doc_slug(path)
-    page = ParsedPage(path=path, title=title)
+    page = ParsedPage(path=path, title=title, base_url=base_url)
     main = soup.select_one("#block-w3css-subtheme-content") or soup.body
     if main is None:
         return page
@@ -164,7 +166,7 @@ def parse_page(path: str, html: str) -> ParsedPage:
 
 def _parse_section(page: ParsedPage, main: Tag) -> None:
     doc_id = f"cal:{doc_slug(page.path)}"
-    url = BASE_URL + page.path
+    url = page.base_url + page.path
     body = main.select_one(".view-section-view .views-field-body .field-content")
     if body is not None:
         for dt in body.select("dl.ckeditor-accordion > dt"):
@@ -193,7 +195,7 @@ def _parse_section(page: ParsedPage, main: Tag) -> None:
 
 def _parse_course(page: ParsedPage, doc_id: str, label: str, content: Tag) -> None:
     code, _, title = (part.strip() for part in label.partition("•"))
-    url = f"{BASE_URL}/course/{code}"
+    url = f"{page.base_url}/course/{code}"
     course = Course(code=code, title=title, description="", area=page.title, source_url=url)
     desc = content.select_one(".views-field-field-desc")
     course.description = to_text(desc) if desc else ""
@@ -237,7 +239,7 @@ def _parse_program(page: ParsedPage, doc_id: str, label: str, content: Tag) -> N
     code = match.group(1)
     name = label.rsplit(" - ", 1)[0].strip()
     program_type = next((t for t in ("Specialist", "Major", "Minor") if t in label), "Other")
-    url = f"{BASE_URL}{page.path}#programs"
+    url = f"{page.base_url}{page.path}#programs"
     sections: dict[str, list[str]] = {"description": [], "enrolment": [], "completion": [], "notes": []}
     current = "description"
     for child in content.children:
@@ -285,7 +287,7 @@ def _parse_program(page: ParsedPage, doc_id: str, label: str, content: Tag) -> N
 
 def _parse_plain(page: ParsedPage, main: Tag) -> None:
     doc_id = f"cal:{doc_slug(page.path)}"
-    url = BASE_URL + page.path
+    url = page.base_url + page.path
     heading = page.title
     buffer: list[str] = []
     used: set[str] = set()
