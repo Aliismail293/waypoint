@@ -22,3 +22,6 @@ evals/results/safety_offline.json
 fde-kit/dist/
 fde-kit/.venv/
 fdekit-demo/.venv/
+
+# Claude Code local state (worktrees, settings)
+.claude/
