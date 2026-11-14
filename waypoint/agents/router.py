@@ -62,17 +62,25 @@ class RouteDecision:
 UNSURE = RouteDecision("unsure", "", source="fallback")
 
 _PLANNING = re.compile(
-    r"\bplan\b|term-by-term|\bgraduat|\bfinish (?:my|the)\b|\bby 20\d\d\b|what (?:should|do) i take", re.I
-)
-_TIMETABLE = re.compile(
-    r"\bsections?\b|timetable|meeting times?|\b(?:mon|tues?|wednes|thurs?|fri)(?:day)?s?\b|afternoons?|mornings?",
+    r"\bplan\b|term-by-term|map out|each term|\bgraduat\w* (?:with|by|in)\b|\bfinish (?:my|the)\b.*\b(?:in|by)\b"
+    r"|\bby 20\d\d\b|what (?:should|do) i take",
     re.I,
 )
-_COURSE = re.compile(
-    r"\b[A-Z]{3}\d{3}(?:[HY]5)?\b|prerequisite|prereq|exclusion|corequisite|\bcredits?\b|\bunlocks?\b", re.I
+_TIMETABLE = re.compile(
+    r"\bsections?\b|timetable|meeting times?|\b(?:mon|tues?|wednes|thurs?|fri)(?:day)?s?\b|afternoons?|mornings?"
+    r"|evenings?|\brooms?\b",
+    re.I,
 )
-_POLICY = re.compile(
-    r"requirement|policy|minimum|cgpa|gpa|deadline|petition|probation|good standing|credits? (?:to|needed)", re.I
+_COURSE_CODE = re.compile(r"\b[A-Z]{3}\d{3}(?:[HY]5)?\b", re.I)
+_PROGRAM = re.compile(
+    r"\bER[A-Z]{3}\d{4}\b|\b(?:major|minor|specialist|program|department)\b|requirement|policy|minimum|cgpa|gpa"
+    r"|deadline|petition|probation|good standing|\bwho (?:leads|runs|chairs)\b|graduat",
+    re.I,
+)
+_COURSE_WORDS = re.compile(
+    r"prerequisite|prereq|exclusion|corequisite|\bcredits?\b|\bunlocks?\b|breadth|contact hours|identifier"
+    r"|\b(?:class|course|subject)\b",
+    re.I,
 )
 _MULTI = re.compile(r"\b(?:and also|as well as|compare|both)\b", re.I)
 
@@ -85,10 +93,12 @@ def heuristic_route(text: str) -> RouteDecision:
         return RouteDecision("planning", "")
     if _TIMETABLE.search(text):
         return RouteDecision("timetable", "")
-    if _COURSE.search(text):
+    if _COURSE_CODE.search(text):
         return RouteDecision("simple_lookup", SPECIALISTS["course"])
-    if _POLICY.search(text):
+    if _PROGRAM.search(text):
         return RouteDecision("simple_lookup", SPECIALISTS["policy"])
+    if _COURSE_WORDS.search(text):
+        return RouteDecision("simple_lookup", SPECIALISTS["course"])
     return RouteDecision("unsure", "")
 
 

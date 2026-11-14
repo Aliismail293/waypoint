@@ -1,0 +1,343 @@
+{
+  "mode": "heuristic",
+  "router_model": null,
+  "questions": 36,
+  "route_accuracy": 1.0,
+  "per_route": {
+    "simple_lookup": "18/18",
+    "timetable": "7/7",
+    "planning": "7/7",
+    "unsure": "4/4"
+  },
+  "specialist_accuracy_on_correct_lookups": 1.0,
+  "wrong_fast_routes": 0,
+  "confusions": {},
+  "median_ms": 0.0,
+  "router_model_calls": 0,
+  "results": [
+    {
+      "id": "r01",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r02",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r03",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r04",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r05",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r06",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r07",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r08",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r09",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r10",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r11",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r12",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r13",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r14",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r15",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r16",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r17",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r18",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r19",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r20",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r21",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r22",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r23",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r24",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r25",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r26",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r27",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r28",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r29",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r30",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r31",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r32",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r33",
+      "expected": "unsure",
+      "got": "unsure",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r34",
+      "expected": "unsure",
+      "got": "unsure",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r35",
+      "expected": "unsure",
+      "got": "unsure",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    },
+    {
+      "id": "r36",
+      "expected": "unsure",
+      "got": "unsure",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 0.0,
+      "model_calls": 0
+    }
+  ]
+}
