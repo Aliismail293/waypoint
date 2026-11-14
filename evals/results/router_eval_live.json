@@ -1,0 +1,345 @@
+{
+  "mode": "model",
+  "router_model": "gemini-3.5-flash-lite",
+  "questions": 36,
+  "route_accuracy": 0.9722,
+  "per_route": {
+    "simple_lookup": "17/18",
+    "timetable": "7/7",
+    "planning": "7/7",
+    "unsure": "4/4"
+  },
+  "specialist_accuracy_on_correct_lookups": 1.0,
+  "wrong_fast_routes": 0,
+  "confusions": {
+    "simple_lookup->unsure": 1
+  },
+  "median_ms": 1668.6,
+  "router_model_calls": 36,
+  "results": [
+    {
+      "id": "r01",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1763.3,
+      "model_calls": 1
+    },
+    {
+      "id": "r02",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1777.8,
+      "model_calls": 1
+    },
+    {
+      "id": "r03",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1515.0,
+      "model_calls": 1
+    },
+    {
+      "id": "r04",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1660.0,
+      "model_calls": 1
+    },
+    {
+      "id": "r05",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1726.7,
+      "model_calls": 1
+    },
+    {
+      "id": "r06",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1628.8,
+      "model_calls": 1
+    },
+    {
+      "id": "r07",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1611.1,
+      "model_calls": 1
+    },
+    {
+      "id": "r08",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1596.2,
+      "model_calls": 1
+    },
+    {
+      "id": "r09",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1839.9,
+      "model_calls": 1
+    },
+    {
+      "id": "r10",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "course",
+      "specialist_got": "course",
+      "ms": 1583.9,
+      "model_calls": 1
+    },
+    {
+      "id": "r11",
+      "expected": "simple_lookup",
+      "got": "unsure",
+      "specialist_expected": "policy",
+      "specialist_got": "",
+      "ms": 1594.5,
+      "model_calls": 1
+    },
+    {
+      "id": "r12",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 1641.8,
+      "model_calls": 1
+    },
+    {
+      "id": "r13",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 1635.6,
+      "model_calls": 1
+    },
+    {
+      "id": "r14",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 1839.6,
+      "model_calls": 1
+    },
+    {
+      "id": "r15",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 1592.3,
+      "model_calls": 1
+    },
+    {
+      "id": "r16",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 1685.4,
+      "model_calls": 1
+    },
+    {
+      "id": "r17",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 1555.0,
+      "model_calls": 1
+    },
+    {
+      "id": "r18",
+      "expected": "simple_lookup",
+      "got": "simple_lookup",
+      "specialist_expected": "policy",
+      "specialist_got": "policy",
+      "ms": 1801.0,
+      "model_calls": 1
+    },
+    {
+      "id": "r19",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1725.9,
+      "model_calls": 1
+    },
+    {
+      "id": "r20",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1561.8,
+      "model_calls": 1
+    },
+    {
+      "id": "r21",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1949.7,
+      "model_calls": 1
+    },
+    {
+      "id": "r22",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1749.4,
+      "model_calls": 1
+    },
+    {
+      "id": "r23",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1541.2,
+      "model_calls": 1
+    },
+    {
+      "id": "r24",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1634.9,
+      "model_calls": 1
+    },
+    {
+      "id": "r25",
+      "expected": "timetable",
+      "got": "timetable",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1693.5,
+      "model_calls": 1
+    },
+    {
+      "id": "r26",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1668.6,
+      "model_calls": 1
+    },
+    {
+      "id": "r27",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1488.9,
+      "model_calls": 1
+    },
+    {
+      "id": "r28",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1566.4,
+      "model_calls": 1
+    },
+    {
+      "id": "r29",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1667.4,
+      "model_calls": 1
+    },
+    {
+      "id": "r30",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1677.1,
+      "model_calls": 1
+    },
+    {
+      "id": "r31",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1848.4,
+      "model_calls": 1
+    },
+    {
+      "id": "r32",
+      "expected": "planning",
+      "got": "planning",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1708.4,
+      "model_calls": 1
+    },
+    {
+      "id": "r33",
+      "expected": "unsure",
+      "got": "unsure",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 2449.5,
+      "model_calls": 1
+    },
+    {
+      "id": "r34",
+      "expected": "unsure",
+      "got": "unsure",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1743.4,
+      "model_calls": 1
+    },
+    {
+      "id": "r35",
+      "expected": "unsure",
+      "got": "unsure",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1826.7,
+      "model_calls": 1
+    },
+    {
+      "id": "r36",
+      "expected": "unsure",
+      "got": "unsure",
+      "specialist_expected": "",
+      "specialist_got": "",
+      "ms": 1653.4,
+      "model_calls": 1
+    }
+  ]
+}
