@@ -128,7 +128,7 @@ def check_model_ids(settings: Settings) -> None:
         return
     bad = {role: m for role, m in model_ids(settings).items() if role != "embedding" and not MODEL_ID.match(m or "")}
     if bad:
-        raise ValueError(f"Invalid model id in settings: {bad}. Set WAYPOINT_AGENT_MODEL etc. to a real Gemini model id.")
+        raise ValueError(f"Invalid model id in settings: {bad}. Set WAYPOINT_AGENT_MODEL etc. to a real model id.")
 
 
 @lru_cache
