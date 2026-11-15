@@ -1,0 +1,10 @@
+# Best config from ragaudit tune ae24afa1-010c-4c92-8e41-bd4c918b4481
+# strategy random, 8 trial(s), trial 0; dev 92.0, locked test 90.0
+# Use with: ragaudit evaluate --adapter evals/v3_adapter.py --config evals/results/v3_best_config.yaml
+chunk_size: 1200
+chunk_overlap: 150
+top_k: 5
+hybrid_weight: 0.5
+reranker: none
+prompt_variant: plain
+router_threshold: 0.0

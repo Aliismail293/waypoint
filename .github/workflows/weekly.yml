@@ -1,0 +1,52 @@
+# Weekly health check: offline tests, then a 5-question live smoke test (hard cap $0.10). Opens an issue on failure.
+name: weekly
+
+on:
+  schedule:
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+env:
+  RAGAUDIT_REPO: https://github.com/Aliismail293/rag-tester.git
+  RAGAUDIT_SHA: 236bf5028ebe780b2677ced6ec24c0a02b860d67
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ragaudit (path dependency)
+        run: |
+          git clone --quiet "$RAGAUDIT_REPO" ../Rag-Tester
+          git -C ../Rag-Tester checkout --quiet "$RAGAUDIT_SHA"
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --all-groups --frozen
+      - run: uv run pytest -q
+      - name: Live smoke test (skipped unless the GCP secrets are set)
+        env:
+          WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$WIF_PROVIDER" ]; then echo "No GCP secrets set; live smoke test skipped."; echo "SKIP_LIVE=1" >> "$GITHUB_ENV"; fi
+      - uses: google-github-actions/auth@v2
+        if: env.SKIP_LIVE != '1'
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - name: Live smoke test
+        if: env.SKIP_LIVE != '1'
+        env:
+          WAYPOINT_LLM: vertex
+          WAYPOINT_EMBEDDINGS: vertex
+          WAYPOINT_STORE: memory
+        run: uv run python scripts/live_smoke.py
+      - name: Open an issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue create --title "Weekly health check failed" --body "See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" --repo "${{ github.repository }}"

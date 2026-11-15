@@ -13,6 +13,7 @@ Endpoints
 
 import json
 import logging
+import re
 import time
 from collections import defaultdict
 from collections.abc import AsyncIterator
@@ -31,11 +32,13 @@ from starlette.concurrency import run_in_threadpool
 from waypoint.agents.runtime import WaypointRuntime
 from waypoint.analytics import UsageEvent, UsageStore, new_answer_id, question_event, summarise, usage_store
 from waypoint.api.auth import User, authenticate
-from waypoint.config import Settings, get_settings
+from waypoint.config import Settings, check_model_ids, get_settings
 from waypoint.course_page import course_page
+from waypoint.coursemap import ancestors, build_map
+from waypoint.datastore import get_store
+from waypoint.enrolment import enrolment_check
 from waypoint.graph import build_graph, find_route
 from waypoint.history import FILTERS, HistoryStore, SourceRef, Turn, history_store, matches, record, topic_of
-from waypoint.mcp.timetable.adapter import SampleFileSource, TimetableAdapter
 from waypoint.observability.tracing import hash_user
 from waypoint.pack import build_pack, pack_email, pack_pdf
 from waypoint.plans import (
@@ -50,8 +53,8 @@ from waypoint.plans import (
     tidy,
 )
 from waypoint.profile import Profile, ProfileError, ProfileStore, profile_context, profile_store, validate_profile
+from waypoint.programs import checklist
 from waypoint.safety import redact_pii
-from waypoint.timetable_check import timetable_view
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 STATIC = Path(__file__).parent / "static"
@@ -106,8 +109,10 @@ class SourceMismatchRequest(BaseModel):
 class ProfileRequest(BaseModel):
     courses: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
     program: str = Field(default="", max_length=60)
+    programs: list[str] = Field(default_factory=list, max_length=4)
     grad_year: int | None = None
     onboarded: bool = True
+    highschool_done: bool = False
 
 
 class PlanTermBody(BaseModel):
@@ -125,11 +130,6 @@ class AddCourseBody(BaseModel):
     term: str | None = Field(default=None, max_length=20)
 
 
-class TimetableBody(BaseModel):
-    term: str = Field(max_length=20)
-    section_ids: list[str] = Field(default_factory=list, max_length=40)
-
-
 class PinBody(BaseModel):
     pinned: bool = True
 
@@ -138,7 +138,6 @@ class PackBody(BaseModel):
     plan_id: str | None = Field(default=None, max_length=20)
     include_pinned: bool = True
     include_critic: bool = True
-    timetable_term: str | None = Field(default=None, max_length=20)
 
 
 class DailyLimiter:
@@ -171,11 +170,11 @@ def create_app(
         "plans": plans,
         "history": history,
     }
-    timetable = TimetableAdapter(SampleFileSource())  # synthetic sample data, labelled wherever it is shown
     limiter = DailyLimiter(settings.max_requests_per_user_per_day)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):  # build the agent tree once per container, not per request
+        check_model_ids(settings)
         if state["runtime"] is None:
             state["runtime"] = WaypointRuntime.from_settings(settings)
         if state["usage"] is None:
@@ -247,11 +246,28 @@ def create_app(
         except Exception:
             logging.exception("history not recorded")
 
+    def coverage_rows() -> list[dict]:
+        store = get_store()
+        rows = []
+        for campus in store.campuses:
+            courses = [c for c in store.courses.values() if c["campus"] == campus["code"]]
+            rows.append(
+                {
+                    "code": campus["code"],
+                    "name": campus["name"],
+                    "courses": len(courses),
+                    "subjects": sorted({c["subject_code"] for c in courses}),
+                }
+            )
+        return rows
+
     @app.get("/api/config")
     def config() -> dict:
         return {
             "google_client_id": settings.google_client_id,
             "advisor_url": settings.advisor_url,
+            # What the data actually covers, so the page never claims more (campuses with 0 courses aren't loaded)
+            "coverage": {"campuses": coverage_rows()},
             # Local development and the browser smoke test run without Google sign-in; never on Cloud Run.
             "dev_mode": settings.dev_skip_auth and not settings.on_cloud_run,
         }
@@ -294,7 +310,7 @@ def create_app(
     @app.get("/api/course/{code}")
     async def course(code: str, user: User = Depends(current_user)) -> dict:  # noqa: B008
         profile = await load_profile(user)
-        page = await run_in_threadpool(course_page, state["runtime"].deps.catalog, timetable, profile, code)
+        page = await run_in_threadpool(course_page, state["runtime"].deps.catalog, profile, code)
         if page is None:
             raise HTTPException(status_code=404, detail="That course isn't in Waypoint's data yet.")
         return page
@@ -312,7 +328,45 @@ def create_app(
         graph = await run_in_threadpool(build_graph, state["runtime"].deps.catalog, profile)
         return find_route(graph, code, profile)
 
-    # ---- plans, critic report, timetable ----
+    # ---- V3: course map, Programs tab, Enrolment check ----
+
+    async def planned_codes(user: User) -> set[str]:
+        return {c for p in await load_plans(user) for t in p.terms for c in t.courses}
+
+    @app.get("/api/v3/map")
+    async def course_map_v3(
+        campus: str = "all",
+        subject: str = "",
+        user: User = Depends(current_user),  # noqa: B008
+    ) -> dict:
+        profile = await load_profile(user)
+        subjects = {s for s in subject.upper().split(",") if re.fullmatch(r"[A-Z]{3}", s)}
+        return build_map(get_store(), profile, await planned_codes(user), campus, subjects)
+
+    @app.get("/api/v3/map/path/{code}")
+    async def course_path(code: str, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        return ancestors(get_store().edges(), code.upper())
+
+    @app.get("/api/v3/programs")
+    async def programs_v3(campus: str = "", q: str = "", user: User = Depends(current_user)) -> dict:  # noqa: B008
+        found = get_store().find_programs(q, campus or None)
+        rows = [{k: p[k] for k in ("code", "name", "type", "campus", "calendar_year")} for p in found]
+        return {"programs": rows, "campuses": get_store().campuses}
+
+    @app.get("/api/v3/programs/{code}")
+    async def program_checklist(code: str, user: User = Depends(current_user)) -> dict:  # noqa: B008
+        profile = await load_profile(user)
+        result = checklist(get_store(), code.upper(), profile, await planned_codes(user))
+        if result is None:
+            raise HTTPException(status_code=404, detail="That program isn't in Waypoint's data yet.")
+        return result
+
+    @app.get("/api/v3/enrolment")
+    async def enrolment(term: str = "", user: User = Depends(current_user)) -> dict:  # noqa: B008
+        profile = await load_profile(user)
+        return enrolment_check(get_store(), profile, await load_plans(user), term or None)
+
+    # ---- plans, critic report ----
 
     async def load_plans(user: User) -> list[Plan]:
         return await run_in_threadpool(state["plans"].get, user.user_id)
@@ -409,22 +463,6 @@ def create_app(
         await save_plans(user, [updated if p.id == updated.id else p for p in plans] if plans else [updated])
         return await with_review(user, updated)
 
-    @app.get("/api/plans/{plan_id}/timetable")
-    async def plan_timetable(plan_id: str, term: str, user: User = Depends(current_user)) -> dict:  # noqa: B008
-        plan = find_plan(await load_plans(user), plan_id)
-        courses = next((t.courses for t in plan.terms if t.term == term), [])
-        return await run_in_threadpool(timetable_view, timetable, courses, term, plan.timetable.get(term, []))
-
-    @app.put("/api/plans/{plan_id}/timetable")
-    async def choose_sections(plan_id: str, body: TimetableBody, user: User = Depends(current_user)) -> dict:  # noqa: B008
-        plans = await load_plans(user)
-        plan = find_plan(plans, plan_id)
-        courses = next((t.courses for t in plan.terms if t.term == body.term), [])
-        view = await run_in_threadpool(timetable_view, timetable, courses, body.term, body.section_ids)
-        plan.timetable[body.term] = [c["section_id"] for c in view["chosen"]]
-        await save_plans(user, plans)
-        return view
-
     # ---- history and the advisor pack ----
 
     @app.get("/api/history")
@@ -466,15 +504,8 @@ def create_app(
             if body.include_pinned
             else []
         )
-        view = None
-        if body.timetable_term and body.plan_id:
-            chosen = find_plan(plans, body.plan_id)
-            courses = next((t.courses for t in chosen.terms if t.term == body.timetable_term), [])
-            view = await run_in_threadpool(
-                timetable_view, timetable, courses, body.timetable_term, chosen.timetable.get(body.timetable_term, [])
-            )
         return build_pack(
-            profile=profile.model_dump(), plan=plan, turns=turns, timetable=view, include_critic=body.include_critic
+            profile=profile.model_dump(), plan=plan, turns=turns, timetable=None, include_critic=body.include_critic
         )
 
     @app.post("/api/pack/pdf")

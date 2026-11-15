@@ -5,6 +5,7 @@ injects from Secret Manager and which you export locally from `gcloud secrets ve
 """
 
 import os
+import re
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +33,13 @@ class Settings(BaseSettings):
     router: str = "on"
     router_model: str = "gemini-3.5-flash-lite"
     router_timeout_s: float = 6.0
+    # Fact route (waypoint/facts.py): prerequisite/exclusion/credit/program questions are answered from structured
+    # data in code. fact_phrasing "model" lets one short model call reword the facts (live mode only).
+    fact_route: str = "on"
+    fact_phrasing: str = "model"
+    fact_phrasing_timeout_s: float = 4.0
+    # Hard time budget for a planning question; past it the answer is whatever is known plus "open My plan".
+    plan_budget_s: float = 20.0
     # Answer cache for identical normalised questions (waypoint/cache.py): off | memory | firestore.
     answer_cache: str = "memory"
     answer_cache_ttl_hours: float = 24.0
@@ -96,6 +104,31 @@ class Settings(BaseSettings):
     @property
     def on_cloud_run(self) -> bool:
         return bool(os.environ.get("K_SERVICE"))
+
+
+MODEL_ID = re.compile(r"^(gemini|claude)-[a-z0-9][a-z0-9.\-]*$")
+
+
+def model_ids(settings: Settings) -> dict[str, str]:
+    """Every model this app calls, by role. Model IDs live only in Settings (override with WAYPOINT_*_MODEL env)."""
+    return {
+        "agent": settings.agent_model,
+        "critic": settings.critic_model,
+        "router": settings.router_model,
+        "embedding": settings.embedding_model,
+    }
+
+
+def check_model_ids(settings: Settings) -> None:
+    """Startup check for live mode: fail fast on a blank or malformed model ID instead of on the first question.
+
+    Format only; it makes no network call. A retired model still fails at the first call, which the weekly live smoke
+    test (RUNBOOK) catches."""
+    if settings.llm == "mock":
+        return
+    bad = {role: m for role, m in model_ids(settings).items() if role != "embedding" and not MODEL_ID.match(m or "")}
+    if bad:
+        raise ValueError(f"Invalid model id in settings: {bad}. Set WAYPOINT_AGENT_MODEL etc. to a real model id.")
 
 
 @lru_cache

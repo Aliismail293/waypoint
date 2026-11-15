@@ -12,10 +12,12 @@ from typing import Any, Protocol
 from pydantic import BaseModel, Field
 
 from waypoint.config import Settings
+from waypoint.datastore import DataStore, get_store
+from waypoint.ingest.prereq_parser import describe
 from waypoint.observability.tracing import hash_user
+from waypoint.prereq_eval import evaluate
 from waypoint.profile import Profile
 from waypoint.tools.catalog import Catalog, normalise_code
-from waypoint.tools.prereqs import check_prerequisites
 
 COLLECTION = "plans"
 MAX_PLANS = 6
@@ -24,7 +26,7 @@ MAX_COURSES_PER_TERM = 8
 MAX_CREDITS_PER_TERM = 2.5
 TERM = re.compile(r"^(\d{4}) (Fall|Winter|Summer)$")
 SEASON_ORDER = {"Winter": 0, "Summer": 1, "Fall": 2}
-CODE = re.compile(r"^[A-Z]{3}\d{3}[HY]\d$")
+CODE = re.compile(r"^[A-Z]{3}[A-D0-9]\d{2}[HY]\d$")
 CREDITS_REQUIRED = re.compile(r"(\d+(?:\.\d+)?)\s*(?:-|–|to)?\s*(\d+(?:\.\d+)?)?\s*credits are required", re.I)
 
 
@@ -90,19 +92,23 @@ def _course(catalog: Catalog, code: str) -> dict[str, Any] | None:
     return rows[0] if rows else None
 
 
-def program_credits(catalog: Catalog, program: str) -> tuple[tuple[float, float] | None, list[str]]:
-    """(min, max) credits the program requires, parsed from its calendar text; None if the text doesn't say."""
+def program_credits(
+    catalog: Catalog, program: str, store: DataStore | None = None
+) -> tuple[tuple[float, float] | None, list[str]]:
+    """(min, max) credits the program requires, from its parsed calendar text; None if it doesn't say."""
     if not program:
         return None, []
-    rows = catalog.run("get_program", {"code": program, "pattern": "%\x00%"})
-    if not rows:
+    store = store or get_store()
+    row = store.program(program)
+    if row is None:
         return None, []
-    match = CREDITS_REQUIRED.search(rows[0].get("completion_requirements") or "")
-    chunk_ids = list(rows[0].get("chunk_ids") or [])
-    if not match:
-        return None, chunk_ids
-    low = float(match.group(1))
-    return (low, float(match.group(2) or low)), chunk_ids
+    need = row["requirements_tree"]["credits_required"]
+    chunk_ids = [f"cal:{_slug(row['area'])}#{_slug(program)}-completion"]
+    return ((need["min"], need["max"]) if need else None), chunk_ids
+
+
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60]
 
 
 def suggest_term(plan: Plan, code: str, profile: Profile, catalog: Catalog) -> str:
@@ -115,7 +121,8 @@ def suggest_term(plan: Plan, code: str, profile: Profile, catalog: Catalog) -> s
     for t in plan.terms:
         credits = sum(float((_course(catalog, c) or {}).get("credits") or 0.5) for c in t.courses)
         fits = credits + float(course["credits"]) <= MAX_CREDITS_PER_TERM and len(t.courses) < MAX_COURSES_PER_TERM
-        if fits and check_prerequisites(course.get("prerequisites") or "", sorted(have)).status != "unmet":
+        tree = (get_store().get(code) or {}).get("prereq_tree")
+        if fits and evaluate(tree, have, profile.highschool_done).status != "unmet":
             return t.term
         have |= set(t.courses)
     return next_term(plan.terms[-1].term) if plan.terms else "2026 Fall"
@@ -138,31 +145,44 @@ def add_course(plan: Plan, code: str, term: str | None, profile: Profile, catalo
 
 
 # ---- the review (critic report) ----
+#
+# Levels: "ok" (a check that passed), "headsup" (a real conflict, amber) and "note" (neutral information).
+# A prerequisite the student simply hasn't got yet is a note, never an error: the card's "i" shows the requirement.
 
 
 def _item(level: str, text: str, chunk_ids: list[str] | None = None, codes: list[str] | None = None) -> dict[str, Any]:
     return {"level": level, "text": text, "chunk_ids": sorted(set(chunk_ids or [])), "codes": codes or []}
 
 
-def review_plan(plan: Plan, profile: Profile, catalog: Catalog) -> dict[str, Any]:
+def _and(items: list[str]) -> str:
+    return " and ".join(items) if len(items) <= 2 else ", ".join(items[:-1]) + f", and {items[-1]}"
+
+
+def primary_program(profile: Profile) -> str:
+    return profile.programs[0] if profile.programs else profile.program
+
+
+def review_plan(plan: Plan, profile: Profile, catalog: Catalog, store: DataStore | None = None) -> dict[str, Any]:
     """Deterministic critic report. Courses the student has taken or is taking count as already in hand."""
+    store = store or get_store()
     done = set(profile.codes("done"))
     in_hand = set(profile.codes())
+    planned_in = {code: t.term for t in plan.terms for code in t.courses}
     seen: set[str] = set()
     items: list[dict[str, Any]] = []
-    prereq_chunks: list[str] = []
+    cards: dict[str, dict[str, Any]] = {}
     credits_per_term: dict[str, float] = {}
     planned_credits = 0.0
-    order_ok = True
+    reported_pairs: set[tuple[str, str]] = set()
     for t in plan.terms:
         planned_now: set[str] = set()
         term_credits = 0.0
         for code in t.courses:
-            course = _course(catalog, code)
+            course = store.get(code)
             if course is None:
                 items.append(
                     _item(
-                        "error",
+                        "note",
                         f"{code} ({t.term}) isn't in Waypoint's course data, so it can't be checked.",
                         codes=[code],
                     )
@@ -171,37 +191,47 @@ def review_plan(plan: Plan, profile: Profile, catalog: Catalog) -> dict[str, Any
             chunk = [course["chunk_id"]] if course.get("chunk_id") else []
             term_credits += float(course["credits"])
             planned_now.add(code)
+            before = in_hand | seen
+            tree = course["prereq_tree"]
+            now_eval = evaluate(tree, before, profile.highschool_done)
+            cards[code] = _card(course, now_eval)
             if code in done:
-                items.append(_item("warn", f"You've already taken {code}; it is in {t.term} anyway.", chunk, [code]))
-            check = check_prerequisites(course.get("prerequisites") or "", sorted(in_hand | seen))
-            if course.get("prerequisites"):
-                prereq_chunks += chunk
-            if check.status == "unmet":
-                order_ok = False
-                needs = ", ".join(check.missing)
-                items.append(
-                    _item(
-                        "error",
-                        f"{code} in {t.term} needs {needs} first. Calendar: {check.text}",
-                        chunk,
-                        [code, *check.missing],
-                    )
-                )
-            elif check.status == "unclear":
-                items.append(
-                    _item(
-                        "warn",
-                        f"Confirm {code}'s prerequisite yourself (grades or program rules): {check.text}",
-                        chunk,
-                        [code],
-                    )
-                )
-            for other in course.get("exclusion_codes") or []:
-                if other in in_hand or other in seen or other in planned_now:
+                items.append(_item("headsup", f"You've already taken {code}; it is in {t.term} anyway.", chunk, [code]))
+            if course.get("status") == "discontinued":
+                items.append(_item("headsup", f"{code} isn't offered anymore, so it can't be planned.", chunk, [code]))
+            if now_eval.status == "unmet":
+                everything = (before | set(planned_in)) - {code}
+                later = [m for m in now_eval.missing if m in planned_in]
+                if later and evaluate(tree, everything, profile.highschool_done).status != "unmet":
+                    for early in later:
+                        where = "the same term" if planned_in[early] == t.term else planned_in[early]
+                        items.append(
+                            _item(
+                                "headsup",
+                                f"{code} is in {t.term} but its prerequisite {early} is in {where}: "
+                                f"move {early} to an earlier term.",
+                                chunk,
+                                [code, early],
+                            )
+                        )
+                else:
                     items.append(
                         _item(
-                            "error",
-                            f"{code} is an exclusion of {other}: you can't take both for credit.",
+                            "note",
+                            f"{code} asks for {_and(now_eval.missing)}, which isn't in your taken or "
+                            "planned courses yet.",
+                            chunk,
+                            [code, *now_eval.missing],
+                        )
+                    )
+            for other in course["exclusion_codes"]:
+                pair = tuple(sorted((code, other)))
+                if other != code and (other in in_hand or other in planned_in) and pair not in reported_pairs:
+                    reported_pairs.add((pair[0], pair[1]))
+                    items.append(
+                        _item(
+                            "headsup",
+                            f"{code} and {other} exclude each other: you can't take both for credit.",
                             chunk,
                             [code, other],
                         )
@@ -212,61 +242,74 @@ def review_plan(plan: Plan, profile: Profile, catalog: Catalog) -> dict[str, Any
     if not any(t.courses for t in plan.terms):
         return {
             "status": "empty",
-            "items": [_item("warn", "This plan has no courses yet. Add some, or ask Pip to draft a plan in chat.")],
+            "items": [_item("note", "This plan has no courses yet. Add some, or ask Pip to draft a plan in chat.")],
+            "heads_up": [],
+            "notes": [],
+            "cards": {},
             "credits": None,
             "plan_text": "",
         }
-    if order_ok and not any(i["level"] == "error" for i in items):
-        items.insert(
-            0, _item("ok", "Every planned course comes after the prerequisites Waypoint can check.", prereq_chunks)
-        )
-    heavy = {term: c for term, c in credits_per_term.items() if c > MAX_CREDITS_PER_TERM}
-    for term, c in heavy.items():
-        items.append(_item("error", f"{term} has {c:g} credits, over the {MAX_CREDITS_PER_TERM:g}-credit full load."))
-    if not heavy:
-        busiest = max(credits_per_term.values())
-        items.append(
-            _item("ok", f"No term is over the {MAX_CREDITS_PER_TERM:g}-credit full load (busiest: {busiest:g}).")
-        )
-
+    for term, c in credits_per_term.items():
+        if c > MAX_CREDITS_PER_TERM:
+            items.append(
+                _item(
+                    "headsup", f"{term} has {c:g} credits, over the {MAX_CREDITS_PER_TERM:g}-credit full course load."
+                )
+            )
+    chosen = set(profile.programs) | ({profile.program} if profile.program else set())
+    for rule_list in (store.rules.get(code, []) for code in sorted(chosen)):
+        for rule in rule_list:
+            if rule["rule_type"] == "program_exclusion" and set(rule["params"]["programs"]) <= chosen:
+                items.append(_item("headsup", rule["source_text"]))
     counted = {c for t in plan.terms for c in t.courses} | done
-    total = sum(float((_course(catalog, c) or {}).get("credits") or 0) for c in counted)
-    required, program_chunks = program_credits(catalog, profile.program)
+    total = sum(float((store.get(c) or {}).get("credits") or 0) for c in counted)
+    required, program_chunks = program_credits(catalog, primary_program(profile), store)
     if required is not None:
         low, high = required
-        label = f"{low:g}" if low == high else f"{low:g}–{high:g}"
-        if total < low:
-            items.append(
-                _item(
-                    "warn",
-                    f"{total:g} credits counted so far (taken plus planned). "
-                    f"{profile.program} needs {label}, so add more terms.",
-                    program_chunks,
-                )
+        label = f"{low:g}" if low == high else f"{low:g}-{high:g}"
+        verb = "is below" if total < low else "meets"
+        items.append(
+            _item(
+                "note" if total < low else "ok",
+                f"{total:g} credits counted (taken plus planned) {verb} the {label} {primary_program(profile)} needs.",
+                program_chunks,
             )
-        else:
-            items.append(
-                _item(
-                    "ok",
-                    f"{total:g} credits counted (taken plus planned) meets the {label} {profile.program} needs.",
-                    program_chunks,
-                )
-            )
-    else:
-        items.append(_item("warn", "Set your program in your profile to see credits against its requirement."))
-    status = (
-        "errors"
-        if any(i["level"] == "error" for i in items)
-        else "notes"
-        if any(i["level"] == "warn" for i in items)
-        else "ok"
-    )
+        )
+    if not any(i["level"] == "headsup" for i in items):
+        busiest = max(credits_per_term.values())
+        items.insert(
+            0,
+            _item(
+                "ok",
+                f"No heads-ups: nothing is out of order and no term is over {MAX_CREDITS_PER_TERM:g} credits "
+                f"(busiest: {busiest:g}).",
+            ),
+        )
+    heads_up = [i for i in items if i["level"] == "headsup"]
+    notes = [i for i in items if i["level"] == "note"]
     return {
-        "status": status,
+        "status": "headsup" if heads_up else "notes" if notes else "ok",
         "items": items,
+        "heads_up": heads_up,
+        "notes": notes,
+        "cards": cards,
         "credits": {"counted": total, "planned": planned_credits, "required": list(required) if required else None},
         "plan_text": plan_text(plan),
     }
+
+
+def _card(course: dict[str, Any], ev: Any) -> dict[str, Any]:
+    """What the course card's "i" popover shows: the requirement in plain words and what can't be checked."""
+    lines = [ev.text]
+    if course.get("coreq_tree"):
+        lines.append(f"Corequisite: {describe(course['coreq_tree'])}")
+    if course.get("recommended_preparation"):
+        lines.append(f"Recommended preparation: {course['recommended_preparation']}")
+    if ev.unchecked:
+        lines.append(f"Waypoint can't check: {'; '.join(ev.unchecked)}.")
+    if course.get("enrolment_notes"):
+        lines.append(f"Enrolment: {course['enrolment_notes']}")
+    return {"title": course["title"], "lines": lines, "calendar_url": course.get("calendar_url", "")}
 
 
 # ---- stores ----

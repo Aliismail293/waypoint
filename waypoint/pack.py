@@ -198,7 +198,7 @@ def pack_pdf(pack: Pack, compress: bool = True) -> bytes:
     if pack.notes:
         heading("Open critic notes (checked by code)")
         for level, text, srcs in pack.notes:
-            body(f"{'!' if level == 'error' else '-'} {text}")
+            body(f"{'!' if level == 'headsup' else '-'} {text}")
             links(srcs)
     if pack.answers:
         heading("Pinned answers to check")

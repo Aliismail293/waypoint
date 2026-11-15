@@ -1,102 +1,124 @@
-// Course map: which courses to show, where they go, and the SVG path of each link (DESIGN_SPEC section 5).
-// Everything here is drawn from the links the server sends, which come from the prerequisites table: nothing is inferred.
-export const COLUMNS = [
-  { id: "before", label: "BEFORE" },
-  { id: "now", label: "NOW" },
-  { id: "lower", label: "100 / 200-LEVEL" },
-  { id: "upper", label: "300 / 400-LEVEL" },
+// Course map (V3): big columns by level, sub-columns by prerequisite depth, path highlighting and filters.
+// The server sends each node's band (1-4) and sub-column (depth inside its band) and the real prerequisite edges;
+// this module only places them and works out highlights. Nothing is inferred: no edge in the data, no line.
+export const BANDS = [
+  { band: 1, label: "100-LEVEL" },
+  { band: 2, label: "200-LEVEL" },
+  { band: 3, label: "300-LEVEL" },
+  { band: 4, label: "400-LEVEL" },
 ];
-export const NODE_W = 190;
-export const NODE_H = 54;
-const PITCH_X = 280;
-const PITCH_Y = 72;
-const TOP = 36;
-const LEFT = 24;
+export const NODE_W = 150;
+export const NODE_H = 50;
+const PITCH_X = 190; // between sub-columns
+const PITCH_Y = 64;
+const BAND_GAP = 44;
+const TOP = 40;
+const LEFT = 20;
+export const HIGHLIGHT = "#F59E0B"; // amber, 3px (spec 4.1)
 
-// Courses within `hops` links downstream of the student's courses, plus the student's own, plus `keep` and its
-// prerequisites. A student with no courses yet sees every course that is in Waypoint's data.
-export function visibleCodes(nodes, edges, { showAll = false, keep = null, hops = 2 } = {}) {
-  const mine = nodes.filter((n) => n.status).map((n) => n.code);
-  const all = nodes.filter((n) => n.in_data).map((n) => n.code);
-  if (showAll || mine.length === 0) return new Set(all);
-  const unlocks = new Map();
-  const prereqs = new Map();
-  for (const e of edges) {
-    if (!unlocks.has(e.from)) unlocks.set(e.from, []);
-    unlocks.get(e.from).push(e.to);
-    if (!prereqs.has(e.to)) prereqs.set(e.to, []);
-    prereqs.get(e.to).push(e.from);
-  }
-  const seen = new Set(mine);
-  let frontier = mine;
-  for (let i = 0; i < hops; i++) {
-    frontier = frontier.flatMap((c) => unlocks.get(c) || []).filter((c) => !seen.has(c));
-    frontier.forEach((c) => seen.add(c));
-  }
-  if (keep) {
-    seen.add(keep);
-    (prereqs.get(keep) || []).forEach((c) => seen.add(c));
-  }
-  const known = new Set(nodes.map((n) => n.code));
-  return new Set([...seen].filter((c) => known.has(c)));
-}
-
-export function layoutMap(nodes, visible) {
-  const byColumn = Object.fromEntries(COLUMNS.map((c) => [c.id, []]));
-  for (const n of nodes) if (visible.has(n.code)) byColumn[n.column].push(n);
+// Ghost cards (prerequisites outside the filter) sit in their own column at the left edge.
+export function layoutMap(nodes) {
+  const ghosts = nodes.filter((n) => n.ghost);
+  const real = nodes.filter((n) => !n.ghost);
   const positions = new Map();
+  let x = LEFT;
+  const headers = [];
   let rows = 1;
-  COLUMNS.forEach((col, i) => {
-    const list = byColumn[col.id].sort((a, b) => a.code.localeCompare(b.code));
-    rows = Math.max(rows, list.length);
-    list.forEach((n, row) => positions.set(n.code, { x: LEFT + i * PITCH_X, y: TOP + row * PITCH_Y }));
-  });
-  return {
-    positions,
-    width: LEFT * 2 + (COLUMNS.length - 1) * PITCH_X + NODE_W,
-    height: TOP + rows * PITCH_Y,
-    headers: COLUMNS.map((c, i) => ({ ...c, x: LEFT + i * PITCH_X, count: byColumn[c.id].length })),
-  };
+  if (ghosts.length) {
+    ghosts.sort((a, b) => a.code.localeCompare(b.code)).forEach((n, row) => positions.set(n.code, { x, y: TOP + row * PITCH_Y }));
+    headers.push({ id: "ghost", label: "OUTSIDE THIS VIEW", x, w: NODE_W, count: ghosts.length });
+    rows = Math.max(rows, ghosts.length);
+    x += NODE_W + BAND_GAP;
+  }
+  for (const { band, label } of BANDS) {
+    const inBand = real.filter((n) => n.band === band);
+    if (!inBand.length) continue;
+    const subs = Math.max(...inBand.map((n) => n.sub)) + 1;
+    for (let s = 0; s < subs; s++) {
+      const col = inBand.filter((n) => n.sub === s).sort((a, b) => a.code.localeCompare(b.code));
+      rows = Math.max(rows, col.length);
+      col.forEach((n, row) => positions.set(n.code, { x: x + s * PITCH_X, y: TOP + row * PITCH_Y }));
+    }
+    const w = (subs - 1) * PITCH_X + NODE_W;
+    headers.push({ id: `band${band}`, label, x, w, count: inBand.length });
+    x += w + BAND_GAP;
+  }
+  return { positions, headers, width: x - BAND_GAP + LEFT, height: TOP + rows * PITCH_Y + 10 };
 }
 
-// A curve from the right edge of one course to the left edge of the next; links inside one column loop out and back.
+// A curve from the right edge of one course to the left edge of the next; links inside one sub-column loop out.
 export function edgePath(from, to) {
   const y1 = from.y + NODE_H / 2;
   const y2 = to.y + NODE_H / 2;
   if (from.x === to.x) {
     const x = from.x + NODE_W;
-    return `M${x} ${y1}C${x + 44} ${y1} ${x + 44} ${y2} ${x} ${y2}`;
+    return `M${x} ${y1}C${x + 40} ${y1} ${x + 40} ${y2} ${x} ${y2}`;
   }
-  const [a, b] = from.x < to.x ? [from, to] : [to, from];
-  const ya = a.y + NODE_H / 2;
-  const yb = b.y + NODE_H / 2;
-  const x1 = a.x + NODE_W;
-  const mid = (x1 + b.x) / 2;
-  return `M${x1} ${ya}C${mid} ${ya} ${mid} ${yb} ${b.x} ${yb}`;
+  if (from.x > to.x) {
+    // a prerequisite drawn to the right of its course (ghost columns, or a chain across bands): go right-to-left
+    const x1 = from.x;
+    const mid = (x1 + to.x + NODE_W) / 2;
+    return `M${x1} ${y1}C${mid} ${y1} ${mid} ${y2} ${to.x + NODE_W} ${y2}`;
+  }
+  const x1 = from.x + NODE_W;
+  const mid = (x1 + to.x) / 2;
+  return `M${x1} ${y1}C${mid} ${y1} ${mid} ${y2} ${to.x} ${y2}`;
 }
 
-// Courses whose in-data prerequisites are all among the student's courses: "unlocks next".
-export function unlockableNext(nodes, edges) {
-  const have = new Set(nodes.filter((n) => n.status).map((n) => n.code));
-  const needs = new Map();
-  for (const e of edges) needs.set(e.to, [...(needs.get(e.to) || []), e.from]);
-  return new Set(
-    nodes
-      .filter((n) => n.in_data && !n.status && (needs.get(n.code) || []).length && needs.get(n.code).every((c) => have.has(c)))
-      .map((n) => n.code),
-  );
+export const edgeKey = (e) => `${e.from}>${e.to}`;
+
+// Everything on any prerequisite path into `code` (the course itself included) and the edges between them.
+export function pathInto(edges, code) {
+  const into = new Map();
+  for (const e of edges) into.set(e.to, [...(into.get(e.to) || []), e]);
+  const nodes = new Set([code]);
+  const used = new Set();
+  const stack = [code];
+  while (stack.length) {
+    for (const e of into.get(stack.pop()) || []) {
+      used.add(edgeKey(e));
+      if (!nodes.has(e.from)) {
+        nodes.add(e.from);
+        stack.push(e.from);
+      }
+    }
+  }
+  return { nodes, edges: used };
 }
 
-export function routeEdges(route) {
-  const steps = route.steps || [];
-  return steps.slice(1).map((s, i) => ({ from: steps[i].code, to: s.code }));
+// The "or" badge sits at the midpoint of the first edge of each `one_of` group.
+export function orBadges(edges, positions) {
+  const seen = new Set();
+  const badges = [];
+  for (const e of edges) {
+    if (e.kind !== "one_of") continue;
+    const id = `${e.to}#${e.group}`;
+    const a = positions.get(e.from);
+    const b = positions.get(e.to);
+    if (seen.has(id) || !a || !b) continue;
+    seen.add(id);
+    badges.push({ id, x: (a.x + NODE_W + b.x) / 2, y: (a.y + b.y) / 2 + NODE_H / 2 });
+  }
+  return badges;
 }
 
-const NOTES = {
-  route: "Waypoint draws only the prerequisite links in its data. Some courses have other requirements too (grades, program enrolment): open the course page to check them all.",
-  no_route: "None of this course's prerequisite links in Waypoint's data lead back to the courses you've added.",
-  no_links: "Waypoint's data lists no prerequisite links for this course, so there's no route to draw.",
-  already_taken: "You've already taken this course.",
-  unknown_course: "That course isn't in Waypoint's data yet.",
-};
-export const routeNote = (state) => NOTES[state] || NOTES.route;
+export const subjectLabel = (s) => (s.name ? `${s.name} · ${s.code}` : s.code);
+
+// "Find a route to…": code prefix, or words from the title.
+export function findCourses(nodes, query, limit = 8) {
+  const q = query.trim().toLowerCase().replace(/\s+/g, "");
+  if (!q) return [];
+  return nodes
+    .filter((n) => !n.ghost && (n.code.toLowerCase().startsWith(q) || n.title.toLowerCase().replace(/\s+/g, "").includes(q)))
+    .slice(0, limit);
+}
+
+// Legend colour class of a card; a status chosen in the popover recolours it immediately.
+export function cardKind(n) {
+  if (n.ghost) return "ghost";
+  return { done: "taken", now: "now", planned: "planned" }[n.status] || "other";
+}
+
+export function setStatus(nodes, code, status) {
+  return nodes.map((n) => (n.code === code ? { ...n, status } : n));
+}

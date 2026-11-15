@@ -40,6 +40,8 @@ from waypoint.agents.router import RouteDecision, classify
 from waypoint.agents.state import MeteredLlm, PruneOldToolOutputs, state_options
 from waypoint.cache import AnswerCache, CachedAnswer, build_answer_cache, cache_key
 from waypoint.config import Settings, get_settings
+from waypoint.datastore import get_store
+from waypoint.facts import answer_fact, parse_fact_question, rephrase_ok
 from waypoint.llm.embeddings import get_embedder
 from waypoint.llm.models import agent_model
 from waypoint.observability.cost import cost_usd
@@ -51,7 +53,7 @@ from waypoint.sources import locate_passage
 APP_NAME = "waypoint"
 tracer = trace.get_tracer("waypoint")
 logger = logging.getLogger(__name__)
-FAST_ROUTES = ("policy_agent", "course_data_agent", "timetable_agent", "planner_agent")
+FAST_ROUTES = ("policy_agent", "course_data_agent", "planner_agent")  # timetable_agent is a demo, off the user path
 CHUNK_ID = r"cal:[a-z0-9-]+#[a-z0-9-]+"
 CITATION = re.compile(rf"\[({CHUNK_ID})\]")
 # Models sometimes group several ids in one bracket: [cal:a#x, cal:a#y]. Split those into [id][id].
@@ -255,6 +257,19 @@ def check_citations(text: str, retrieved: list[str]) -> tuple[str, list[str], li
     for chunk_id in invalid:
         text = text.replace(f"[{chunk_id}]", "")
     return text, [c for c in cited if c in allowed], invalid
+
+
+NO_TIMETABLE = (
+    "Waypoint doesn't have real section times or room data, so I can't tell you what meets when. Use U of T's "
+    "Timetable Builder for sections and ACORN to enrol. When you're ready, the **Enrolment check** tab lists "
+    "your planned courses for next term, with their enrolment notes and conflicts, and a list to search on ACORN."
+)
+
+PARTIAL_PLAN_NOTE = (
+    "That planning question is taking longer than I can wait here, so this is what I have so far. "
+    "Open **My plan** to build and check the plan step by step: it checks prerequisites, exclusions and "
+    "term load instantly."
+)
 
 
 @dataclass
@@ -614,13 +629,83 @@ class WaypointRuntime:
         }.get(decision.category)
         return key if key in self.fast_runners else None
 
+    async def _try_fact(self, text: str, record: RequestRecord, context: str) -> str | None:
+        """The fact route: answer from structured data in code. None means "not a fact question"."""
+        if self.settings.fact_route != "on":
+            return None
+        store = get_store()
+        query = parse_fact_question(text, store)
+        if query is None:
+            return None
+        started = time.perf_counter()
+        record.category, record.route = "fact", "fact"
+        record.send(
+            "status", {"step": "facts", "id": "facts", "label": "Looking up the course data", "state": "running"}
+        )
+        have = set(re.findall(r"[A-Z]{3}[A-D0-9]\d{2}[HY]\d", context.split("High-school")[0]))
+        answer = answer_fact(query, store, have, "High-school math prerequisites completed" in context)
+        if not answer.text:
+            return None
+        record.retrieved_chunk_ids = list(answer.chunk_ids)
+        record.seen_codes |= set(COURSE_CODE.findall(answer.text))
+        ms = round((time.perf_counter() - started) * 1000)
+        label = f"Looked up the course data \u00b7 {len(answer.codes) or len(query.programs)} found"
+        record.send("status", {"step": "facts", "id": "facts", "label": label, "state": "done", "ms": ms})
+        if answer.chunk_ids:
+            record.send("sources", list(answer.chunk_ids))
+        final = await self._rephrase(answer.text, text, record)
+        self._stream_text(record, final)
+        return final
+
+    async def _rephrase(self, facts: str, question: str, record: RequestRecord) -> str:
+        """Live mode only: one short model call rewords the facts. Falls back to the facts as written."""
+        if self.settings.llm != "vertex" or self.settings.fact_phrasing != "model":
+            return facts
+        try:
+            from google import genai
+
+            client = genai.Client(
+                vertexai=True, project=self.settings.gcp_project, location=self.settings.model_location
+            )
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=self.settings.router_model,
+                    contents=f"Question: {question}\n\nFacts:\n{facts}",
+                    config=types.GenerateContentConfig(
+                        system_instruction=(
+                            "Rewrite the facts as a short, friendly answer to the question: two to four sentences, "
+                            "or a short list if a list is the answer. Use ONLY the facts given. Keep every course "
+                            "code and every [bracketed citation] exactly as written, at most one citation per "
+                            "sentence. Do not add anything else."
+                        ),
+                        temperature=0.0,
+                        max_output_tokens=400,
+                        thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
+                    ),
+                ),
+                timeout=self.settings.fact_phrasing_timeout_s,
+            )
+            record.router_calls += 1
+            reworded = (response.text or "").strip()
+            return reworded if rephrase_ok(facts, reworded) else facts
+        except Exception:  # timeout, quota: the facts as written are already a complete answer
+            logger.warning("fact rephrase failed; using the facts as written", exc_info=True)
+            return facts
+
     async def _run(
         self, user_id: str, session_id: str, text: str, record: RequestRecord, has_history: bool, context: str = ""
     ) -> str:
+        if (fact_text := await self._try_fact(text, record, context)) is not None:
+            return fact_text
         running = {"step": "route", "id": "route", "label": "Understanding your question", "state": "running"}
         record.send("status", running)
         decision = await self._route(text, has_history)
         record.category, record.router_ms, record.router_calls = decision.category, decision.ms, decision.model_calls
+        if decision.category == "timetable":  # no sample or invented schedules: point to the real tools
+            record.route = "fast"
+            record.send("status", {"step": "route", "id": "route", "label": "Chose a direct path", "state": "done"})
+            self._stream_text(record, NO_TIMETABLE)
+            return NO_TIMETABLE
         fast_key = self._fast_key(decision)
         record.route = "fast" if fast_key else "full"
         record.send(
@@ -645,9 +730,20 @@ class WaypointRuntime:
                 telemetry=self._telemetry,
                 streaming_mode=StreamingMode.SSE,
             )
-            async for event in runner.run_async(
+            budget = self.settings.plan_budget_s if decision.category == "planning" else 0
+            deadline = time.perf_counter() + budget if budget else None
+            events = runner.run_async(
                 user_id=user_id, session_id=session_id, new_message=message, run_config=run_config
-            ):
+            )
+            iterator = events.__aiter__()
+            while True:
+                try:
+                    if deadline is None:
+                        event = await iterator.__anext__()
+                    else:
+                        event = await asyncio.wait_for(iterator.__anext__(), max(deadline - time.perf_counter(), 0.01))
+                except StopAsyncIteration:
+                    break
                 if event.author != root_name or not event.content:
                     continue
                 texts = [p.text for p in event.content.parts or [] if p.text and not p.thought]
@@ -662,10 +758,13 @@ class WaypointRuntime:
                     final_text = "\n".join(texts)
             if final_text and not streamed:  # the model didn't stream: send what we have in word-sized pieces
                 self._stream_text(record, final_text)
-        except LlmCallsLimitExceededError:
+        except (LlmCallsLimitExceededError, TimeoutError):
+            # Never a dead end: keep whatever was streamed or finished, and point to the deterministic planner.
             record.limit_hit = True
-            final_text = (
-                "That question needed more steps than Waypoint allows per request. Try asking about one "
-                "program, course or term at a time."
-            )
+            known = streamed or final_text
+            final_text = (known + "\n\n" if known else "") + PARTIAL_PLAN_NOTE
+            if not streamed:
+                self._stream_text(record, final_text)
+            else:
+                self._stream_text(record, "\n\n" + PARTIAL_PLAN_NOTE)
         return final_text

@@ -105,8 +105,9 @@ questions, live flash-lite): 97.2% route accuracy, 0 wrong fast routes; CI fails
   fetches, so Waypoint did not keep fetching. The corpus is the Mathematical Sciences page fetched before
   that. Adding more pages takes three steps: save them to `data/raw/calendar/`, then run `ingest parse`,
   then `ingest pgvector`.
-- **Timetable:** the public timetable's terms of use are unclear, so the MCP adapter runs on a labelled
-  **synthetic sample** (`waypoint/mcp/timetable/sample_data/`). Every result says so, and the agents are told
+- **Timetable (demo only, not in the app):** since V3 the app has an Enrolment check tab instead of a timetable, and
+  the orchestrator no longer calls the timetable agent. The public timetable's terms of use are unclear, so the MCP
+  adapter, kept as an MCP demo, runs on a labelled **synthetic sample** (`waypoint/mcp/timetable/sample_data/`). Every result says so, and the agents are told
   to say so too.
 - Waypoint never logs in to ACORN or any student system, and never reads transcripts.
 

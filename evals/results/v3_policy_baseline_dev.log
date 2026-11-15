@@ -1,0 +1,7 @@
+Corpus: using the last recorded version, index de4a236de260 (pass --corpus to check for changes).
+Evaluating the dev split with adapter evals/v3_adapter.py, judge llama3.1:8b...
+Evaluated 25 of 25 active dev question(s); mode full (config not evaluated before); 0 from cache, 25 run.
+Score (pass rate): 92.0  |  answer accuracy 96.0%  |  recall@5 96.0%  |  MRR 0.920
+Failure classes: pass 23, retrieval_miss 1, generation_miss 1.
+v1 verdicts: true_pass 23, lucky_pass 1, generation_failure 1, retrieval_failure 0.
+Saved eval run 1063e961-910a-4953-8257-00e65814fc5a (config b291a4585154, index de4a236de260) to evals/golden/store_v3.db.
