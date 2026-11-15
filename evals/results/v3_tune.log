@@ -1,0 +1,22 @@
+Corpus: using the last recorded version, index de4a236de260 (pass --corpus to check for changes).
+Tuning evals/v3_adapter.py over 1620 possible config(s) with strategy random, up to 8 trial(s), scored on the dev split only...
+  trial  0 [baseline    ] dev  92.0  (best  92.0)  chunk_size=1200 chunk_overlap=150 top_k=5 hybrid_weight=0.5 reranker=none prompt_variant=plain router_threshold=0.0
+  trial  1 [random      ] dev  80.0  (best  92.0)  chunk_size=2400 chunk_overlap=150 top_k=8 hybrid_weight=0.5 reranker=overlap prompt_variant=concise router_threshold=0.0
+  trial  2 [random      ] dev  92.0  (best  92.0)  chunk_size=2400 chunk_overlap=150 top_k=3 hybrid_weight=1.0 reranker=overlap prompt_variant=plain router_threshold=0.4
+  trial  3 [random      ] dev  88.0  (best  92.0)  chunk_size=2400 chunk_overlap=150 top_k=8 hybrid_weight=1.0 reranker=overlap prompt_variant=strict router_threshold=0.0
+  trial  4 [random      ] dev  84.0  (best  92.0)  chunk_size=600 chunk_overlap=0 top_k=5 hybrid_weight=0.0 reranker=overlap prompt_variant=plain router_threshold=0.2
+  trial  5 [random      ] dev  76.0  (best  92.0)  chunk_size=1200 chunk_overlap=0 top_k=3 hybrid_weight=1.0 reranker=none prompt_variant=plain router_threshold=0.4
+  trial  6 [random      ] dev  72.0  (best  92.0)  chunk_size=600 chunk_overlap=150 top_k=5 hybrid_weight=1.0 reranker=none prompt_variant=concise router_threshold=0.2
+  trial  7 [random      ] dev  92.0  (best  92.0)  chunk_size=2400 chunk_overlap=150 top_k=3 hybrid_weight=0.5 reranker=none prompt_variant=plain router_threshold=0.2
+
+Search stopped: max trials after 8 trial(s); best is trial 0 (baseline).
+
+Final scores (pass rate, points). Test = locked split, evaluated once per config:
+                 dev    test
+  baseline      92.0    90.0
+  best          92.0    90.0
+
+Improvement on test: +0.0 points (10 test question(s)).
+Dev-test gap for the best config: +2.0 points (threshold 10): no sign of overfitting to the dev set.
+LLM calls (judge + proposer): 185.
+Best config written to evals/results/v3_best_config.yaml. Trial log saved to evals/golden/store_v3.db (tune ae24afa1-010c-4c92-8e41-bd4c918b4481).
