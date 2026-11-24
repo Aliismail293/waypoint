@@ -48,7 +48,8 @@ def extract_plan(answer: str) -> str:
 
 
 async def run_variant(critic: bool, questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    settings = get_settings().model_copy(update={"critic": critic})
+    # the agent planner (drafter + critic) is what this compares; the fast planner is measured by plan_speed.py
+    settings = get_settings().model_copy(update={"critic": critic, "fast_plan": "off"})
     runtime = WaypointRuntime.from_settings(settings)
     rows = []
     for q in questions:

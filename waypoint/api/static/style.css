@@ -484,6 +484,8 @@ select, .add-row input { min-height: 44px; border-radius: 12px; border: 1px soli
 .req { display: flex; gap: 10px; align-items: flex-start; }
 .req .badge { flex: none; min-width: 112px; text-align: center; }
 .badge.plan { background: var(--primary-softer); color: var(--primary-dark); }
+.plan-check { margin: 4px 0 10px; }
+.plan-check .badge svg { width: 12px; height: 12px; vertical-align: -1px; margin-right: 4px; }
 .wrap { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
 .enrol-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
 .enrol-course h3 small { font-weight: 400; color: var(--muted); }

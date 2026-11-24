@@ -140,11 +140,29 @@ function newTurn(message) {
   return turn;
 }
 
+// The checked-plan strip above a fast-planner answer: what code verified, and what's left for the student.
+function planCheckHtml(plan) {
+  const courses = plan.terms.reduce((n, t) => n + t.courses.length, 0);
+  const left = plan.leftover.length + plan.not_in_data.length + plan.check_yourself.length;
+  const badge = plan.valid
+    ? `<span class="badge ok">${CHECK}Checked: prerequisites, exclusions, term load</span>`
+    : `<span class="badge warn">Check this plan carefully</span>`;
+  const counts = `${plan.terms.length} term${plan.terms.length === 1 ? "" : "s"} · ${courses} course${courses === 1 ? "" : "s"}`;
+  const todo = left ? ` · ${left} item${left === 1 ? "" : "s"} for you to check below` : "";
+  return `<div class="badges">${badge}<span class="meta">${escapeHtml(counts + todo)}</span></div>`;
+}
+
 function renderTurn(turn) {
   const { stream } = turn;
   setPip(turn, stream.pip === "idle" && !stream.final && !stream.error ? "thinking" : stream.pip);
   turn.stepsEl.innerHTML = stepsHtml(stream.steps);
   if (stream.sources.length) showSources(turn, stream.sources);
+  if (stream.plan && !turn.planEl) {
+    turn.planEl = document.createElement("div");
+    turn.planEl.className = "plan-check";
+    turn.planEl.innerHTML = planCheckHtml(stream.plan);
+    turn.answerEl.before(turn.planEl);
+  }
   if (stream.text) turn.answerEl.innerHTML = renderMarkdown(stream.text, numberOf(stream));
 }
 
@@ -186,7 +204,7 @@ function actionsFor(turn) {
   const codes = [...new Set(turn.stream.text.match(/\b[A-Z]{3}[A-D0-9]\d{2}[HY]\d\b/g) || [])];
   const mapBtn = codes.length ? `<a class="btn primary" href="#/map/${escapeHtml(codes[0])}">See it on the course map</a>` : "";
   const planBtn = codes.length ? `<button type="button" class="btn" data-add-plan="${escapeHtml(codes[0])}">Add ${escapeHtml(codes[0])} to my plan</button>` : "";
-  const draft = planFromAnswer(turn.stream.text);
+  const draft = turn.stream.plan ? turn.stream.plan.terms.filter((t) => t.courses.length) : planFromAnswer(turn.stream.text);
   const draftBtn = draft.length ? `<button type="button" class="btn" data-save-plan>Save as a plan</button><button type="button" class="btn" data-critic>Check it in My plan</button>` : "";
   bar.innerHTML =
     mapBtn + planBtn + draftBtn +

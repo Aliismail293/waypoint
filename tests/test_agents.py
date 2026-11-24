@@ -18,6 +18,7 @@ def settings():
         sessions="memory",
         router="off",
         fact_route="off",
+        fast_plan="off",  # the agent planner (drafter + critic); the fast planner has tests/test_fastplan.py
     )
 
 

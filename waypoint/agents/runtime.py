@@ -33,15 +33,18 @@ from google.adk.tools.tool_context import ToolContext
 from google.genai import types
 from opentelemetry import trace
 
+from waypoint.agents import prompts
 from waypoint.agents.factory import Dependencies, build_agents
 from waypoint.agents.labels import COURSE, done_label, running_label
 from waypoint.agents.prompts import BUDGET_MESSAGE, NO_PLAN_MESSAGE
-from waypoint.agents.router import RouteDecision, classify
+from waypoint.agents.router import RouteDecision, classify, heuristic_route
 from waypoint.agents.state import MeteredLlm, PruneOldToolOutputs, state_options
 from waypoint.cache import AnswerCache, CachedAnswer, build_answer_cache, cache_key
 from waypoint.config import Settings, get_settings
 from waypoint.datastore import get_store
 from waypoint.facts import answer_fact, parse_fact_question, rephrase_ok
+from waypoint.fastplan import FastPlan, build_plan, match_program, needs_program_reply, parse_request, plan_markdown
+from waypoint.ingest.prereq_parser import describe
 from waypoint.llm.embeddings import get_embedder
 from waypoint.llm.models import agent_model
 from waypoint.observability.cost import cost_usd
@@ -49,6 +52,7 @@ from waypoint.observability.tracing import ObservabilityPlugin, hash_user, log_r
 from waypoint.retrieval.hybrid import HybridRetriever
 from waypoint.safety import COURSE_CODE, flag_unknown_codes, redact_pii, scope_check
 from waypoint.sources import locate_passage
+from waypoint.tools.catalog import InMemoryCatalog
 
 APP_NAME = "waypoint"
 tracer = trace.get_tracer("waypoint")
@@ -91,7 +95,7 @@ class RequestRecord:
     emit: Callable[[str, Any], None] | None = None
     started: float = field(default_factory=time.perf_counter)
     ttft_ms: float | None = None
-    route: str = "full"  # fast | full | cache
+    route: str = "full"  # fast | full | cache | fact | plan
     category: str = "unsure"  # router class: simple_lookup | timetable | planning | unsure
     router_ms: float = 0.0
     router_calls: int = 0
@@ -694,9 +698,117 @@ class WaypointRuntime:
             logger.warning("fact rephrase failed; using the facts as written", exc_info=True)
             return facts
 
+    async def _try_fast_plan(self, text: str, record: RequestRecord, context: str, has_history: bool) -> str | None:
+        """The fast planner: a plan built and checked in code, streamed at once, then a short explanation. None means
+        the agent planner answers (no program named, a follow-up that leans on earlier turns, or no valid plan)."""
+        if self.settings.fast_plan != "on" or (has_history and not match_program(text, get_store())):
+            return None
+        started = time.perf_counter()
+        store = get_store()
+        catalog = self.deps.catalog if self.deps is not None else InMemoryCatalog()
+        plan = await asyncio.to_thread(build_plan, text, context, store, catalog)
+        if plan is None:
+            return None
+        record.category, record.route = "planning", "plan"
+        record.plan_checks.append(bool(plan.validation.get("valid")))
+        record.retrieved_chunk_ids = list(plan.chunk_ids)
+        body = plan_markdown(plan, store)
+        record.seen_codes |= set(COURSE_CODE.findall(body))
+        ms = round((time.perf_counter() - started) * 1000)
+        courses = sum(len(cs) for _, cs in plan.terms)
+        label = f"Built and checked a plan \u00b7 {len(plan.terms)} terms, {courses} courses"
+        record.send("status", {"step": "plan", "id": "plan", "label": label, "state": "done", "ms": ms})
+        if plan.chunk_ids:
+            record.send("sources", list(plan.chunk_ids))
+        record.send("plan", plan.structured())
+        self._stream_text(record, body)
+        explanation = await self._explain_plan(plan, text, record)
+        return f"{body}\n\n{explanation}" if explanation else body
+
+    async def _explain_plan(self, plan: FastPlan, question: str, record: RequestRecord) -> str:
+        """A few sentences on why the plan is in this order, streamed after it. Live mode: one small model call with
+        minimal thinking and a short output cap; anything off (a timeout, a course code that isn't in the plan, a
+        cut-off reply) falls back to the fixed explanation, which the `final` event then swaps in."""
+        fallback = (
+            "Each course sits in the earliest term where its prerequisites are done in an earlier term, with at most "
+            "2.5 credits a term. Confirm the plan with an academic advisor before you enrol."
+        )
+        if self.settings.llm != "vertex" or not plan.terms:
+            self._stream_text(record, "\n\n" + fallback)
+            return fallback
+        store = get_store()
+        allowed = set(COURSE_CODE.findall(plan_markdown(plan, store))) | set(COURSE_CODE.findall(question))
+        plan_term = {c: term for term, cs in plan.terms for c in cs}
+        facts = "\n".join(
+            [f"Plan: {plan.plan_text()}", f"Completed: {', '.join(plan.request.completed) or 'none'}"]
+            + [
+                f"{code} ({plan_term[code]}) needs: {describe((store.get(code) or {}).get('prereq_tree'))}"
+                for code, why in plan.reasons.items()
+            ]
+        )
+        allowed |= set(COURSE_CODE.findall(facts))  # a prerequisite quoted from the facts is fine
+        streamed = ""
+        usage = None
+        finish = ""
+        try:
+            from google import genai
+
+            client = genai.Client(
+                vertexai=True, project=self.settings.gcp_project, location=self.settings.model_location
+            )
+
+            async def run() -> None:
+                nonlocal streamed, usage, finish
+                stream = await client.aio.models.generate_content_stream(
+                    model=self.settings.plan_explainer_model,
+                    contents=f"Student's question: {question}\n\n{facts}",
+                    config=types.GenerateContentConfig(
+                        system_instruction=prompts.PLAN_EXPLAINER,
+                        temperature=0.2,
+                        max_output_tokens=self.settings.plan_explainer_max_tokens,
+                        thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
+                    ),
+                )
+                first = True
+                async for chunk in stream:
+                    usage = chunk.usage_metadata or usage
+                    if chunk.candidates and chunk.candidates[0].finish_reason:
+                        finish = chunk.candidates[0].finish_reason.name
+                    if chunk.text:
+                        piece = ("\n\n" if first else "") + chunk.text
+                        first = False
+                        streamed += chunk.text
+                        record.send("token", {"text": piece})
+
+            await asyncio.wait_for(run(), timeout=self.settings.plan_explainer_timeout_s)
+        except Exception:  # timeout, quota: the plan is already complete; the fixed explanation stands in
+            logger.warning("plan explanation failed; using the fixed one", exc_info=True)
+            finish = "ERROR"
+        if usage is not None:
+            record.model_calls.append(
+                ModelCall(
+                    agent="plan_explainer",
+                    model=self.settings.plan_explainer_model,
+                    input_tokens=usage.prompt_token_count or 0,
+                    output_tokens=usage.candidates_token_count or 0,
+                    cached_tokens=usage.cached_content_token_count or 0,
+                    thinking_tokens=usage.thoughts_token_count or 0,
+                )
+            )
+        text = streamed.strip()
+        if text and finish in ("STOP", "") and set(COURSE_CODE.findall(text)) <= allowed:
+            return text
+        if not streamed:
+            self._stream_text(record, "\n\n" + fallback)
+        return fallback
+
     async def _run(
         self, user_id: str, session_id: str, text: str, record: RequestRecord, has_history: bool, context: str = ""
     ) -> str:
+        # A question that reads as planning skips the fact route and the model router: the plan is built in code.
+        planning = heuristic_route(text).category == "planning"
+        if planning and (plan_text := await self._try_fast_plan(text, record, context, has_history)) is not None:
+            return plan_text
         if (fact_text := await self._try_fact(text, record, context)) is not None:
             return fact_text
         running = {"step": "route", "id": "route", "label": "Understanding your question", "state": "running"}
@@ -708,6 +820,24 @@ class WaypointRuntime:
             record.send("status", {"step": "route", "id": "route", "label": "Chose a direct path", "state": "done"})
             self._stream_text(record, NO_TIMETABLE)
             return NO_TIMETABLE
+        if (
+            decision.category == "planning"
+            and not planning
+            and (plan_text := await self._try_fast_plan(text, record, context, has_history)) is not None
+        ):
+            return plan_text
+        if (
+            decision.category == "planning"
+            and self.settings.fast_plan == "on"
+            and not has_history
+            and parse_request(text, context, get_store()) is None
+        ):
+            # No program named and none in the profile: ask, rather than have the model guess one for 20+ seconds.
+            record.route = "plan"
+            record.send("status", {"step": "route", "id": "route", "label": "Chose a direct path", "state": "done"})
+            reply = needs_program_reply(get_store())
+            self._stream_text(record, reply)
+            return reply
         fast_key = self._fast_key(decision)
         record.route = "fast" if fast_key else "full"
         record.send(

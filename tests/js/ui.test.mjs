@@ -47,6 +47,15 @@ test("stream reducer: sources are kept as soon as they arrive; tokens accumulate
   assert.equal(s.text, "ab");
 });
 
+test("stream reducer: a plan event is kept and starts the turn before any text", () => {
+  const plan = { terms: [{ term: "2027 Winter", courses: ["MAT223H5"] }], valid: true, leftover: [] };
+  const s = run([["plan", plan]]);
+  assert.deepEqual(s.plan, plan);
+  assert.equal(s.started, true);
+  assert.equal(s.text, "");
+  assert.equal(initialStream().plan, null);
+});
+
 test("stepsSummary: 'N steps · X s'", () => {
   const s = run([
     ["status", { step: "a", id: "1", label: "a", state: "done" }],
