@@ -153,7 +153,7 @@ def test_runtime_fact_route_can_be_switched_off() -> None:
 
 def test_planning_over_budget_ends_with_a_pointer_to_my_plan_not_a_step_limit() -> None:
     settings = Settings(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory")
-    runtime = WaypointRuntime.from_settings(settings.model_copy(update={"plan_budget_s": 0.001}))
+    runtime = WaypointRuntime.from_settings(settings.model_copy(update={"plan_budget_s": 0.001, "fast_plan": "off"}))
     answer = asyncio.run(runtime.ask("u1", "Make a plan for me to finish a mathematics degree by 2029"))
     assert answer.record.category == "planning"
     assert "Open **My plan**" in answer.text

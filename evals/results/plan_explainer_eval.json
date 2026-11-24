@@ -1,0 +1,240 @@
+{
+  "gemini-3.5-flash-lite": {
+    "pass_rate": 1.0,
+    "fell_back": 0,
+    "total_p50_s": 1.73,
+    "total_p95_s": 1.95,
+    "cost_usd": 0.00492,
+    "rows": [
+      {
+        "id": "p1",
+        "ttft_s": 1.58,
+        "total_s": 1.95,
+        "cost_usd": 0.000503,
+        "text": "In Winter 2027, MAT202H5, MAT223H5, and MAT232H5 are scheduled first because they only require your completed courses like MAT102H5 and MAT136H5. Following that in Fall 2027, MAT301H5 and MAT334H5 are taken because they need those earlier second-year courses, such as MAT202H5, MAT223H5, or MAT232H5, as prerequisites. Always remember to confirm term offerings and the plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p2",
+        "ttft_s": 1.43,
+        "total_s": 1.77,
+        "cost_usd": 0.000657,
+        "text": "Your courses are ordered so that earlier terms satisfy the prerequisites needed for later courses, such as MAT202H5 needing MAT102H5 and MAT136H5, and MAT224H5 needing MAT102H5 and MAT223H5. Subsequent terms build on this foundation, allowing MAT301H5 to follow MAT202H5 or MAT224H5 alongside MAT102H5, and advanced courses like MAT311H5 to use MAT236H5 and MAT244H5. Please remember to confirm term offerings and the plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p3",
+        "ttft_s": 1.4,
+        "total_s": 1.74,
+        "cost_usd": 0.000573,
+        "text": "MAT233H5 is taken first because it needs MAT139H5, while MAT244H5 and MAT301H5 are placed in Winter 2027 to satisfy the prerequisites for MAT264H5, MAT311H5, and MAT332H5. MAT236H5 and MAT244H5 are completed before Winter 2028 so that MAT311H5 and MAT332H5 have their required courses met. Please confirm term offerings and the plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p4",
+        "ttft_s": 1.32,
+        "total_s": 1.61,
+        "cost_usd": 0.00042,
+        "text": "In 2027 Winter, you will take MAT202H5, which needs MAT102H5 and MAT136H5, and MAT334H5, which needs MAT232H5 and MAT202H5. This allows you to take MAT301H5 in 2027 Fall, as it needs MAT102H5 and MAT202H5. Please confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p5",
+        "ttft_s": 1.32,
+        "total_s": 1.65,
+        "cost_usd": 0.00043,
+        "text": "Your first-year Mathematics major courses are arranged so that MAT102H5 and MAT132H5 are taken in Fall 2026 because they only need a minimum 70% in Grade 12 MHF4U. Following that, MAT134H5 is placed in Winter 2027 because it needs MAT132H5, and MAT240H5 is scheduled for the same term because it needs MAT102H5 (minimum 65%). Please confirm term offerings and the plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p6",
+        "ttft_s": 1.4,
+        "total_s": 1.72,
+        "cost_usd": 0.000478,
+        "text": "For 2027 Winter, MAT202H5 is scheduled because it needs MAT102H5 and MAT159H5, while MAT257Y5 needs MAT159H5 and MAT240H5. For 2027 Fall, MAT244H5 is placed after completing MAT159H5 and MAT240H5, and MAT301H5 follows once MAT202H5 and MAT102H5 are finished. Please confirm term offerings and the plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p7",
+        "ttft_s": 1.5,
+        "total_s": 1.7,
+        "cost_usd": 0.000263,
+        "text": "You are taking MAT134H5 next because it needs MAT135H5, which you have completed. You are also taking MAT223H5 because it needs MAT102H5, which you have completed. Please confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p8",
+        "ttft_s": 1.34,
+        "total_s": 1.87,
+        "cost_usd": 0.00054,
+        "text": "Your courses are ordered so that earlier terms build the necessary prerequisites for later ones, such as MAT233H5 needing MAT136H5, and MAT244H5 requiring both MAT136H5 and MAT223H5. This allows you to progress smoothly into intermediate and advanced courses like MAT236H5, MAT264H5, MAT311H5, and MAT332H5 as you complete their specific requirements. Please confirm term offerings and the plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p9",
+        "ttft_s": 1.35,
+        "total_s": 1.74,
+        "cost_usd": 0.000556,
+        "text": "Your plan starts in 2027 Fall with MAT202H5, MAT223H5, and MAT232H5 because MAT202H5 needs MAT102H5 and MAT139H5, MAT223H5 needs MAT102H5, and MAT232H5 needs MAT139H5. In 2028 Winter, you take MAT301H5 because it needs MAT102H5 and MAT202H5, and MAT334H5 because it needs MAT232H5 and MAT202H5. Please confirm term offerings and the plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p10",
+        "ttft_s": 1.3,
+        "total_s": 1.64,
+        "cost_usd": 0.000504,
+        "text": "For the 2026 Fall term, you begin with MAT102H5, which needs a minimum 70% in Grade 12 MHF4U, and MAT157H5, which needs a minimum 70% in Grade 12 MHF4U and minimum 70% in Grade 12 MCV4U. In the 2027 Winter term, you take MAT159H5, which needs MAT157H5, alongside MAT240H5, which needs MAT102H5 (minimum 65%) or MAT157H5 or MAT157Y1. Please confirm term offerings and the plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      }
+    ]
+  },
+  "gemini-3.5-flash": {
+    "pass_rate": 0.9,
+    "fell_back": 1,
+    "total_p50_s": 2.38,
+    "total_p95_s": 8.09,
+    "cost_usd": 0.0175,
+    "rows": [
+      {
+        "id": "p1",
+        "ttft_s": 4.23,
+        "total_s": 5.0,
+        "cost_usd": 0.002329,
+        "text": "This plan is ordered so that you complete your 200-level courses in the Winter 2027 term, as MAT202H5 requires MAT102H5 and MAT136H5, MAT223H5 requires MAT102H5, and MAT232H5 requires MAT136H5. Completing these allows you to take your 300-level courses in the Fall 2027 term, where MAT301H5 requires MAT102H5 and MAT202H5, and MAT334H5 requires MAT232H5 and MAT202H5. Please remember to confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p2",
+        "ttft_s": 6.12,
+        "total_s": 6.83,
+        "cost_usd": 0.002982,
+        "text": "This plan is structured so that you complete foundational courses like MAT202H5, MAT224H5, and MAT233H5 in your first term, which are needed to satisfy the prerequisites for your subsequent courses. For example, MAT233H5 and MAT224H5 are required to take MAT236H5, MAT301H5, and MAT334H5 in the Fall. Finally, completing these second-year courses allows you to take advanced courses in your final term, such as MAT311H5, MAT315H5, MAT337H5, and MAT401H5. Please remember to confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 4,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p3",
+        "ttft_s": 8.09,
+        "total_s": 8.09,
+        "cost_usd": 0,
+        "text": "Each course sits in the earliest term where its prerequisites are done in an earlier term, with at most 2.5 credits a term. Confirm the plan with an academic advisor before you enrol.",
+        "fell_back": true,
+        "sentences": 2,
+        "claims_left": false,
+        "pass": false
+      },
+      {
+        "id": "p4",
+        "ttft_s": 1.65,
+        "total_s": 2.12,
+        "cost_usd": 0.001942,
+        "text": "You take MAT202H5 in the 2027 Winter term because it needs MAT102H5 and MAT136H5, which you have already completed. MAT334H5 is also taken in the 2027 Winter term as it needs MAT232H5 and MAT202H5, which you are taking concurrently. This allows you to take MAT301H5 in the 2027 Fall term, which needs MAT102H5 and MAT202H5. Please confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 4,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p5",
+        "ttft_s": 1.97,
+        "total_s": 2.3,
+        "cost_usd": 0.001375,
+        "text": "You start with MAT102H5 and MAT132H5 in the fall because they only require your high school mathematics background. In the winter, you take MAT134H5 because it needs MAT132H5, and MAT240H5 because it requires MAT102H5. Please remember to confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p6",
+        "ttft_s": 1.87,
+        "total_s": 2.25,
+        "cost_usd": 0.001775,
+        "text": "Your completed courses MAT102H5, MAT159H5, and MAT240H5 allow you to take MAT202H5 and MAT257Y5 in the Winter 2027 term. Taking MAT202H5 and your completed courses then satisfies the prerequisites for MAT244H5 and MAT301H5 in the Fall 2027 term. Please remember to confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p7",
+        "ttft_s": 2.1,
+        "total_s": 2.62,
+        "cost_usd": 0.001251,
+        "text": "You can take MAT134H5 and MAT223H5 in the 2027 Winter term because you have already completed their required prerequisites. Specifically, MAT134H5 needs MAT135H5, and MAT223H5 needs MAT102H5. Please remember to confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p8",
+        "ttft_s": 1.91,
+        "total_s": 2.46,
+        "cost_usd": 0.00251,
+        "text": "This plan is structured so that you complete MAT233H5 and MAT244H5 in your first term, which are required prerequisites for your subsequent courses. Specifically, MAT236H5 requires MAT233H5, MAT264H5 requires MAT244H5, and MAT334H5 requires MAT233H5. Finally, you take MAT311H5 and MAT332H5 in your last term because both courses require you to have completed MAT236H5 and MAT244H5. Please remember to confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 4,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p9",
+        "ttft_s": 1.81,
+        "total_s": 2.25,
+        "cost_usd": 0.00194,
+        "text": "You can take MAT202H5, MAT223H5, and MAT232H5 in the Fall because they require your completed courses MAT102H5 and MAT139H5. MAT301H5 is scheduled for the Winter because it needs MAT102H5 and MAT202H5. MAT334H5 is also placed in the Winter because it requires MAT232H5 and MAT202H5. Please remember to confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 4,
+        "claims_left": false,
+        "pass": true
+      },
+      {
+        "id": "p10",
+        "ttft_s": 1.75,
+        "total_s": 2.28,
+        "cost_usd": 0.001398,
+        "text": "Your first term features MAT102H5 and MAT157H5 because they only require specific high school mathematics grades as prerequisites. In the winter term, you can then take MAT159H5 because it needs MAT157H5, and MAT240H5 because it needs MAT102H5 or MAT157H5. Please remember to confirm term offerings and this plan with an academic advisor.",
+        "fell_back": false,
+        "sentences": 3,
+        "claims_left": false,
+        "pass": true
+      }
+    ]
+  }
+}

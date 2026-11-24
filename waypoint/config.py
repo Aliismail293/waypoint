@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     fact_phrasing_timeout_s: float = 4.0
     # Hard time budget for a planning question; past it the answer is whatever is known plus "open My plan".
     plan_budget_s: float = 20.0
+    # Fast planner (waypoint/fastplan.py): a planning question that names a program in the data gets a plan built and
+    # checked in code, sent at once, then a short model explanation. "off" sends every planning question to the
+    # agent planner (drafter + critic).
+    fast_plan: str = "on"
+    plan_explainer_model: str = "gemini-3.5-flash-lite"
+    plan_explainer_max_tokens: int = 300
+    plan_explainer_timeout_s: float = 8.0
     # Answer cache for identical normalised questions (waypoint/cache.py): off | memory | firestore.
     answer_cache: str = "memory"
     answer_cache_ttl_hours: float = 24.0

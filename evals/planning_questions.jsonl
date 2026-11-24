@@ -4,3 +4,7 @@
 {"id": "p4", "completed": ["MAT102H5", "MAT135H5", "MAT136H5", "MAT223H5", "MAT232H5"], "question": "I passed MAT102H5, MAT135H5, MAT136H5, MAT223H5 and MAT232H5. I want to take MAT301H5 as soon as possible. Plan my next three terms for the Mathematics minor starting 2027 Winter."}
 {"id": "p5", "completed": [], "question": "I'm a first-year with no university math yet. Make me a plan for the first year of the Mathematics major, starting 2026 Fall."}
 {"id": "p6", "completed": ["MAT102H5", "MAT157H5", "MAT159H5", "MAT240H5", "MAT247H5"], "question": "I've completed MAT102H5, MAT157H5, MAT159H5, MAT240H5 and MAT247H5. Plan my second year toward the Mathematical Sciences Specialist, 2027 Winter and 2027 Fall, max 2 courses per term."}
+{"id": "p7", "completed": ["MAT102H5", "MAT135H5"], "question": "I've done MAT102H5 and MAT135H5. Which courses should I take next term, 2027 Winter, for the Mathematics minor?"}
+{"id": "p8", "completed": ["MAT102H5", "MAT135H5", "MAT136H5", "MAT223H5"], "question": "Map out the Applied Mathematics major for me starting 2026 Fall. I've finished MAT102H5, MAT135H5, MAT136H5 and MAT223H5."}
+{"id": "p9", "completed": ["MAT102H5", "MAT137H5", "MAT139H5"], "question": "I have MAT102H5, MAT137H5 and MAT139H5. Plan the Mathematics minor over the next three terms starting 2027 Fall."}
+{"id": "p10", "completed": [], "question": "Plan the first two terms of the Mathematical Sciences Specialist for me from scratch, starting 2026 Fall."}

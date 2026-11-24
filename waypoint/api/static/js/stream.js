@@ -1,8 +1,9 @@
 // Server-Sent Events from POST /api/chat/stream (DESIGN_SPEC section 6) and the reducer that turns them into UI state.
 // Pip is `thinking` from the first status event until the first token, `talking` until the answer is final, then `idle`.
+// A `plan` event carries a plan built and checked in code: {terms: [{term, courses}], valid, leftover, ...}.
 
 export function initialStream() {
-  return { steps: [], sources: [], text: "", pip: "idle", started: false, final: null, error: null, done: null };
+  return { steps: [], sources: [], text: "", pip: "idle", started: false, final: null, error: null, done: null, plan: null };
 }
 
 // Parses as many complete events as `buffer` holds. Returns the events and the unparsed remainder.
@@ -37,6 +38,8 @@ export function reduce(state, name, data) {
     }
     case "sources":
       return { ...state, sources: data };
+    case "plan": // the fast planner's checked plan, before any answer text
+      return { ...state, plan: data, started: true };
     case "token":
       return { ...state, text: state.text + data.text, started: true, pip: "talking" };
     case "final":
