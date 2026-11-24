@@ -33,7 +33,7 @@ export function groupTurns(turns, now = new Date()) {
 function rowsFor(turn) {
   return turn.sources.map((s, i) => {
     const tail = s.heading.split(" > ").pop();
-    const m = tail.match(/^([A-Z]{3}\d{3}[HY]\d)\s+(.*)/);
+    const m = tail.match(/^([A-Z]{3}[A-D0-9]\d{2}[HY]\d)\s+(.*)/);
     return { n: i + 1, code: m ? m[1] : "", title: m ? m[2] : tail, chunk_id: s.chunk_id, heading: s.heading, url: s.url };
   });
 }

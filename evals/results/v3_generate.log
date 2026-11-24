@@ -1,0 +1,10 @@
+Generating questions for 72 chunk(s) with qwen2.5:7b, verifying with llama3.1:8b...
+Corpus: 72 chunk(s), index de4a236de260: 72 new, 0 changed, 0 deleted, 0 unchanged; 0 question(s) marked stale.
+Chunks: 72 processed, 0 skipped (already have questions at this content hash), 0 remaining.
+  1 chunk(s) returned unparseable facts and will be retried next run.
+Questions: 35 generated (active), 138 rejected.
+  Rejected by reason: ambiguous 2, too_lexical 132, unsupported 4.
+  Split of new active questions: dev 25, test 10.
+LLM calls: 601.
+Store totals: dev 25 active / test 10 active, 0 stale, 138 rejected.
+Saved to evals/golden/store_v3.db (generate run 80e22015-4510-47cb-9f68-ad88360d30cd).

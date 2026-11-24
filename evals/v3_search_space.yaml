@@ -1,0 +1,18 @@
+# Knobs of evals/v3_adapter.py for `ragaudit tune`. Dev split only; the locked test split is scored once at the end.
+knobs:
+  chunk_size: [600, 1200, 2400]
+  chunk_overlap: [0, 150]
+  top_k: [3, 5, 8]
+  hybrid_weight: {min: 0.0, max: 1.0, step: 0.25}   # 0 = keyword only, 1 = embeddings only
+  reranker: [none, overlap]
+  prompt_variant: [plain, concise, strict]
+  router_threshold: [0.0, 0.2, 0.4]                  # refuse when the best retrieval score is below this
+
+baseline:
+  chunk_size: 1200
+  chunk_overlap: 150
+  top_k: 5
+  hybrid_weight: 0.5
+  reranker: none
+  prompt_variant: plain
+  router_threshold: 0.0

@@ -1,0 +1,23 @@
+Corpus: 72 chunk(s), index de4a236de260: 0 new, 0 changed, 0 deleted, 72 unchanged; 0 question(s) marked stale.
+/Users/loly/Desktop/waypoint/waypoint/agents/state.py:127: UserWarning: [EXPERIMENTAL] EventsCompactionConfig: This feature is experimental and may change or be removed in future versions without notice. It may introduce breaking changes at any time.
+  "events_compaction_config": EventsCompactionConfig(summarizer=LlmEventSummarizer(llm=metered), **trigger)
+App name mismatch detected. The runner is configured with app name "waypoint", but the root agent was loaded from "/Users/loly/Desktop/waypoint/waypoint/agents", which implies app name "agents".
+Evaluating the test split with adapter /Users/loly/Desktop/waypoint/evals/waypoint_adapter.py, judge google/gemini-3.5-flash...
+Evaluated 21 of 21 active test question(s); mode full (config not evaluated before); 0 from cache, 21 run.
+Score (pass rate): 47.6  |  answer accuracy 61.9%  |  recall@5 71.4%  |  MRR 0.691
+Failure classes: pass 10, retrieval_miss 6, generation_miss 5.
+v1 verdicts: true_pass 10, lucky_pass 3, generation_failure 5, retrieval_failure 3.
+Saved eval run 4f1394a2-d305-489a-b931-a57b9612d7fc (config 8af7d6556976, index de4a236de260) to /var/folders/wg/k01xztl13c97mqx293pgq6mw0000gn/T/tmpwadhmcwv/store.db.
+| Metric (eval_v3_stage1, test split, n=21, k=5) | Value |
+|---|---|
+| Answer accuracy (LLM judge) | 61.9% |
+| Retrieval hit rate (recall@5) | 71.4% |
+| Pass rate (hit AND correct) | 47.6% |
+| MRR | 0.691 |
+| P50 / P95 latency | 4.0 s / 6.9 s |
+| TTFT P50 / P95 | 3.8 s / 6.8 s |
+| Cost per query (agent, est.) | $0.0039 |
+| Mean model calls per query | 2.9 |
+| route `fact` (n=1): TTFT P50/P95, total P95 | 1.6 / 1.6 s, 1.6 s |
+| route `fast` (n=20): TTFT P50/P95, total P95 | 3.8 / 19.3 s, 19.4 s |
+

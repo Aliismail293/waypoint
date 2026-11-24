@@ -62,7 +62,7 @@ flowchart TD
   so fetching stopped. The corpus is the Mathematical Sciences section: 72 chunks, 59 courses and 4 programs.
   Every chunk has a stable id (`cal:<page>#<anchor>`), and only chunks whose content hash changed are
   re-embedded.
-- **Timetable:** synthetic sample data, labelled in every tool result. The agents are told to say so.
+- **Timetable (V3: demo only, out of the user path):** synthetic sample data, labelled in every tool result. The agents are told to say so.
 - **Students:** only what they type. PII is redacted before it reaches the model, the session store or traces.
 
 ## Request flow and budgets

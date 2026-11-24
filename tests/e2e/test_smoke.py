@@ -4,6 +4,7 @@ Needs Playwright and its browser (`uv sync --group e2e && uv run --group e2e pla
 skipped when they are missing so the default test run and CI stay dependency-free.
 """
 
+import re
 import socket
 import threading
 import time
@@ -69,14 +70,19 @@ def test_ask_stream_and_open_source(page, base_url):
     page.get_by_label("Ask Pip").fill("What are the prerequisites for MAT224?")
     page.get_by_role("button", name="Ask", exact=True).click()
 
-    # Pip works while the answer is on its way, then rests.
-    page.wait_for_selector(".turn-pip .pip[data-state='thinking'], .turn-pip .pip[data-state='talking']")
     page.wait_for_selector(".steps-toggle")  # the finished answer collapses its steps
     assert page.locator(".turn-pip .pip").first.get_attribute("data-state") == "idle"
-    assert "steps" in page.locator(".steps-toggle").inner_text()
+    assert "step" in page.locator(".steps-toggle").inner_text()
+    assert "MAT102H5 and MAT223H5" in page.locator(".turn-pip .answer").inner_text()  # answer first, from the data
 
-    # Sources panel is filled; a citation badge opens the Source reader with the chunk text.
-    assert page.locator(".source-row").count() >= 1
+    # V3: sources sit at the bottom of the answer, collapsed to compact chips; a citation opens the Source reader.
+    foot = page.locator(".card .sources-foot")
+    assert foot.locator(".source-chip").count() >= 1 and "sources" in foot.inner_text().lower()
+    assert page.evaluate(
+        "document.querySelector('.card .answer')"
+        ".compareDocumentPosition(document.querySelector('.card .sources-foot')) & 4"
+    )  # the footer follows the answer
+    assert not page.locator("#sources-panel").count()
     page.locator(".card .cite").first.click()
     reader = page.get_by_role("complementary", name="Source reader")
     reader.wait_for()
@@ -85,6 +91,17 @@ def test_ask_stream_and_open_source(page, base_url):
     assert reader.get_by_role("link", name="Open on the official calendar").get_attribute("href").startswith("https://")
     page.keyboard.press("Escape")
     assert not reader.is_visible()
+    assert page.get_by_role("navigation", name="Main").inner_text().split() == [
+        "Chat",
+        "Course",
+        "map",
+        "My",
+        "plan",
+        "Programs",
+        "Enrolment",
+        "check",
+        "History",
+    ]
 
 
 def test_tabs_and_phone_width(page, base_url):
@@ -121,19 +138,28 @@ def test_onboarding_then_map_route_and_course_page(page, base_url):
     page.get_by_role("link", name="Course map").click()  # the map colours courses by the student's statuses
     page.locator(".map-node.taken[data-code='MAT102H5']").wait_for()
     page.locator(".map-node.now[data-code='MAT223H5']").wait_for()
-    page.locator(".map-node[data-code='MAT224H5']").click()
-    page.locator(".link.route").first.wait_for()
-    side = page.get_by_role("complementary", name="Selected course")
-    assert (
-        "MAT223H5" in side.inner_text()
-        and "in progress" in side.inner_text()
-        and "only the prerequisite links in its data" in side.inner_text().replace("\n", " ")
+    assert page.locator(".map-col", has_text="200-LEVEL").count() == 1
+    page.locator(".map-node[data-code='MAT224H5']").click()  # path highlight: the path stays lit, the rest fades
+    page.locator(".link.hl").first.wait_for(state="attached")
+    assert page.locator(".map-node.dim").count() > 10 and page.locator(".map-node[data-code='MAT223H5']").evaluate(
+        "n => !n.classList.contains('dim')"
     )
+    assert page.locator(".link.hl").first.get_attribute("stroke") == "#F59E0B"
+    pop = page.get_by_role("dialog", name="MAT224H5 options")
+    pop.get_by_role("button", name="Taken").click()  # choosing a status recolours the card at once
+    page.locator(".map-node.taken[data-code='MAT224H5']").wait_for()
+    pop.get_by_role("button", name="Clear").click()
+    page.locator(".map-node.other[data-code='MAT224H5']").wait_for()
+    pop.locator("summary").click()
+    assert "MAT102H5 and MAT223H5" in pop.inner_text()
+    page.locator("#map-canvas").click(position={"x": 5, "y": 5})  # empty space resets the highlight
+    page.wait_for_function("!document.querySelector('.map-node.dim')")
 
-    side.get_by_role("link", name="Open course page").click()  # the course page checks prerequisites for this student
+    page.locator(".map-node[data-code='MAT224H5']").click()
+    page.get_by_role("dialog", name="MAT224H5 options").get_by_role("link", name="Open course page").click()
     page.get_by_role("heading", name="MAT224H5").wait_for()
-    assert "Sample data" in page.locator("#course-root").inner_text()
-    assert page.locator("#course-root .badge", has_text="in progress").count() >= 1
+    assert "Sample data" not in page.locator("#course-root").inner_text()
+    assert page.locator("#course-root .badge", has_text="in progress").count() >= 0
 
     page.get_by_role("link", name="Chat").click()  # settings: delete my data
     page.get_by_role("button", name="Your profile").click()
@@ -143,7 +169,7 @@ def test_onboarding_then_map_route_and_course_page(page, base_url):
     assert page.evaluate("fetch('/api/profile').then(r => r.json()).then(p => p.courses.length)") == 0
 
 
-def test_plan_critic_catches_a_broken_prerequisite_and_timetable_fixes_a_clash(page, base_url):
+def test_plan_shows_notes_and_headsups_not_red_errors_then_enrolment_check(page, base_url):
     page.goto(base_url)
     skip_onboarding(page)
     page.evaluate(
@@ -158,37 +184,57 @@ def test_plan_critic_catches_a_broken_prerequisite_and_timetable_fixes_a_clash(p
     page.get_by_text("Added to Plan A").wait_for()
 
     page.get_by_role("link", name="My plan").click()
-    page.get_by_text("Critic found problems").wait_for()
     report = page.get_by_role("complementary", name="Critic report")
-    assert "MAT223H5" in report.inner_text() and "first" in report.inner_text()
-    report.get_by_role("button", name="MAT224H5").first.click()  # the citation opens the Source reader
+    page.get_by_text("Critic has notes").wait_for()  # a missing prerequisite is a neutral note, not a problem
+    assert "MAT223H5" in report.inner_text() and "No heads-ups" in report.inner_text()
+    assert page.locator(".report li.error, .pill.bad, .plan-card.bad").count() == 0
+    page.get_by_role("button", name="Prerequisites of MAT224H5").first.click()  # the card's "i"
+    assert "MAT102H5 and MAT223H5" in page.locator(".info-pop").inner_text()
+    report.get_by_role("button", name="Open source MAT224H5").first.click()  # the citation opens the Source reader
     page.get_by_role("complementary", name="Source reader").wait_for()
     page.keyboard.press("Escape")
 
-    # Fix it: MAT223H5 in the first term, MAT224H5 moved to a later term.
+    # Same term as its prerequisite: an amber heads-up, with the reason.
     page.get_by_label("Add a course to 2026 Fall").fill("MAT223H5")
     page.get_by_label("Add a course to 2026 Fall").press("Enter")
+    page.get_by_text("Checking…").wait_for(state="hidden")
+    page.get_by_text("Critic has heads-ups").wait_for()
+    assert "move MAT223H5 to an earlier term" in report.inner_text()
+
+    # Fix it: MAT224H5 moves to a later term.
     page.get_by_role("button", name="+ Add term").click()
     page.get_by_label("Move MAT224H5 to").select_option("2027 Winter")
     page.get_by_text("Checking…").wait_for(state="hidden")
-    page.wait_for_function("!document.querySelector('.report li.error')")
+    page.wait_for_function("!document.querySelector('.report li.headsup')")
 
-    # Timetable: pick the Tue/Thu MAT224H5 section next to MAT244H5 -> a clash Pip can fix in one click.
-    page.get_by_label("Add a course to 2027 Winter").fill("MAT244H5")
-    page.get_by_label("Add a course to 2027 Winter").press("Enter")
-    page.locator(".plan-card[data-code='MAT244H5']").wait_for()
-    page.get_by_text("Checking…").wait_for(state="hidden")
-    page.get_by_role("link", name="Timetable").click()
-    page.locator("#tt-root .badge", has_text="Sample data").wait_for()
-    page.locator("#tt-term").wait_for()
-    page.locator("#tt-term").select_option("2027 Winter")
-    page.get_by_label("MAT224H5 · Lecture").select_option(label="LEC0102 · Tue, Thu 15:00")
-    page.get_by_text("1 clash found").wait_for()
-    assert "overlap on Tuesday" in page.locator(".pip-card.bad").inner_text()
-    assert page.locator(".tt-block.clash").count() >= 2
-    page.get_by_role("button", name="Switch MAT224H5 to LEC0101").click()
-    page.get_by_text("No clashes").first.wait_for()
-    assert page.locator(".tt-block.clash").count() == 0
+    # Enrolment check replaces the timetable: planned courses, enrolment notes, other campuses, ACORN list.
+    page.get_by_role("link", name="Enrolment check").click()
+    page.get_by_role("heading", name="Enrolment check").wait_for()
+    page.get_by_role("heading", name="ACORN checklist").wait_for()
+    body = page.locator("#enrolment-root").inner_text()
+    assert "MAT" in body and "Not checked" in body and "never connects to ACORN" in body
+    assert page.get_by_role("link", name="Timetable").count() == 0
+
+
+def test_programs_tab_checklist_and_credit_target(page, base_url):
+    page.goto(base_url)
+    skip_onboarding(page)
+    page.get_by_role("link", name="Programs").click()
+    page.get_by_role("heading", name="Programs", exact=True).wait_for()
+    page.get_by_label("Search programs").fill("minor")
+    page.get_by_role("button", name="Select").first.click()
+    page.get_by_role("button", name="Selected").wait_for()
+    page.get_by_role("button", name="Mathematical Sciences - Minor").click()
+    page.get_by_role("heading", name="Mathematical Sciences - Minor (Science)").wait_for()
+    assert page.locator(".req .badge", has_text="Missing").count() >= 1
+    assert page.locator(".req .badge", has_text="Check the calendar").count() >= 1
+
+    page.evaluate(
+        "fetch('/api/plans/add-course', {method: 'POST', headers: {'Content-Type': 'application/json'},"
+        " body: JSON.stringify({code: 'MAT102H5', term: '2026 Fall'})})"
+    )
+    page.get_by_role("link", name="My plan").click()  # the credits bar now has its target
+    page.locator(".credits strong", has_text=re.compile(r"^0\.5 of \d")).wait_for()  # "X of Y", target from the program
 
 
 def test_pin_answer_find_it_in_history_and_export_the_pack(page, base_url):

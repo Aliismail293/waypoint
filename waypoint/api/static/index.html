@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Waypoint — UTM degree planning</title>
+  <title>Waypoint — U of T course planning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap" rel="stylesheet">
@@ -16,22 +16,23 @@
       <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z" fill="#4338CA"/><circle cx="12" cy="10" r="3" fill="#FFFFFF"/></svg>
       Waypoint
     </a>
+    <span class="inst" id="institution">University of Toronto</span>
     <nav class="tabs glass" aria-label="Main">
       <a href="#/chat" data-tab="chat" aria-current="page">Chat</a>
       <a href="#/map" data-tab="map">Course map</a>
       <a href="#/plan" data-tab="plan">My plan</a>
-      <a href="#/timetable" data-tab="timetable">Timetable</a>
+      <a href="#/programs" data-tab="programs">Programs</a>
+      <a href="#/enrolment" data-tab="enrolment">Enrolment check</a>
       <a href="#/history" data-tab="history">History</a>
     </nav>
     <div id="account"><div id="signin"></div><button type="button" id="who" hidden aria-label="Your profile"></button></div>
   </header>
 
-  <div id="view-chat" class="layout">
+  <div id="view-chat" class="layout single">
     <main>
-      <section class="notice">
-        Waypoint covers the <strong>Mathematical Sciences</strong> programs and MAT courses for now.
-        Timetable answers use <strong>sample data</strong>, not real offerings. Always confirm plans with an
-        <a id="advisor-link" href="#" target="_blank" rel="noopener">academic advisor</a>.
+      <section class="notice" id="coverage">
+        <span id="coverage-text">Waypoint answers from the University of Toronto academic calendars.</span>
+        Always confirm plans with an <a id="advisor-link" href="#" target="_blank" rel="noopener">academic advisor</a>.
         Don't share personal information (student number, grades) in your questions.
       </section>
 
@@ -39,11 +40,11 @@
         <div id="empty" class="empty">
           <div id="empty-pip"></div>
           <h2>Hi, I'm Pip. What can I help you plan?</h2>
-          <p>Ask about programs, courses, prerequisites or a term plan. Every answer cites the Academic Calendar.</p>
+          <p>Ask about courses, prerequisites, programs or a term plan. Answers cite the Academic Calendar.</p>
           <div id="examples">
-            <button type="button" class="example">What are the prerequisites for MAT224, and what does it unlock?</button>
-            <button type="button" class="example">How many credits does the Mathematics major require?</button>
-            <button type="button" class="example">Which MAT or STA courses this winter fit Tue/Thu afternoons?</button>
+            <button type="button" class="example">What do I need before MAT224H5?</button>
+            <button type="button" class="example">Which courses list MAT223H5 as a prerequisite?</button>
+            <button type="button" class="example">What are the requirements for the Mathematical Sciences minor?</button>
           </div>
         </div>
       </section>
@@ -55,13 +56,6 @@
       </form>
     </main>
 
-    <aside id="sources-panel" class="sources-panel glass" aria-label="Sources">
-      <header><h2>Sources</h2><span class="count" id="sources-count"></span></header>
-      <div id="sources-list"></div>
-      <button type="button" class="more" id="sources-more" hidden aria-expanded="false"></button>
-      <p class="no-sources" id="sources-none">Sources appear here as soon as Pip finds them, before the answer.</p>
-      <p class="note">Covers Mathematical Sciences for now. Timetable is sample data. Student project, not affiliated with U of T.</p>
-    </aside>
   </div>
 
   <div id="view-map" class="layout wide" hidden>
@@ -69,25 +63,28 @@
       <div class="page-head">
         <h1>Course map</h1>
         <span class="pill" id="map-count"></span>
-        <button type="button" class="btn" id="map-all" aria-pressed="false">Show all courses</button>
+        <label class="sr" for="map-campus">Campus</label>
+        <select id="map-campus" class="glass"></select>
+        <label class="sr" for="map-subject">Subject</label>
+        <select id="map-subject" class="glass"></select>
         <form id="map-find" class="find">
           <label for="map-goal" class="sr">Find a route to a course</label>
           <input id="map-goal" list="map-list" type="text" placeholder="Find a route to… e.g. MAT406" class="glass" autocomplete="off">
           <datalist id="map-list"></datalist>
-          <button type="submit" class="btn primary">Route</button>
+          <button type="submit" class="btn primary">Find</button>
         </form>
       </div>
+      <div id="map-chips" class="chiprow" role="group" aria-label="Subjects in view"></div>
       <p class="form-error" id="map-error" role="alert"></p>
       <div class="map-wrap">
         <div class="glass map-scroll" tabindex="0" aria-label="Course map, scrolls sideways on small screens">
           <div id="map-canvas" class="map-canvas">Sign in to see the course map.</div>
         </div>
-        <aside id="map-side" class="glass map-side" aria-label="Selected course"></aside>
       </div>
       <div class="legend">
         <span><i class="sw taken"></i>Taken</span><span><i class="sw now"></i>In progress</span>
-        <span><i class="sw next"></i>Unlocks next</span><span><i class="sw sel"></i>Selected</span>
-        <span class="grow">Only prerequisite links that exist in Waypoint's data are drawn · click any course to route to it</span>
+        <span><i class="sw planned"></i>Planned</span><span><i class="sw ghost"></i>Outside this view</span>
+        <span class="grow">Only prerequisite links in Waypoint's data are drawn · dashed lines with "or" mean any one of them · click a course for its path</span>
       </div>
     </main>
   </div>
@@ -100,8 +97,12 @@
     <main id="plan-root"></main>
   </div>
 
-  <div id="view-timetable" class="layout wide" hidden>
-    <main id="tt-root" class="tt-layout"></main>
+  <div id="view-programs" class="layout wide" hidden>
+    <main id="programs-root"></main>
+  </div>
+
+  <div id="view-enrolment" class="layout wide" hidden>
+    <main id="enrolment-root"></main>
   </div>
 
   <div id="view-history" class="layout wide" hidden>

@@ -1,12 +1,14 @@
 // Waypoint UI. Sign-in uses Google Identity Services: the button returns an ID token (JWT) to this page, which sends it
 // to the API as a Bearer token. The token lives only in memory. Plain ES modules, no build step (see docs/DESIGN.md).
 import { claimFor, escapeHtml, renderMarkdown } from "./js/citations.js";
+import { coverageText, sourceChip } from "./js/chat-bits.js";
 import { pipSvg } from "./js/pip.js";
 import { showCourse, wireCourse } from "./js/course-view.js";
 import { showHistory, wireHistory } from "./js/history-view.js";
 import { invalidateMap, showMap, wireMap } from "./js/map-view.js";
 import { invalidatePlans, showPlan, wirePlan } from "./js/plan-view.js";
-import { showTimetable, wireTimetable } from "./js/timetable-view.js";
+import { showEnrolment, wireEnrolment } from "./js/enrolment-view.js";
+import { showPrograms, wirePrograms } from "./js/programs-view.js";
 import { onProfileChange, openSettings, startOnboarding } from "./js/profile-view.js";
 import { api, authHeaders, canAsk, errorFrom, postJson, session } from "./js/session.js";
 import { initialStream, readEvents, reduce, stepsSummary } from "./js/stream.js";
@@ -20,9 +22,9 @@ const BOOKMARK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
 const THUMB_UP = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
 const THUMB_DOWN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>';
 
-// ---- Tabs (hash routes: #/chat, #/map[/CODE], #/course/CODE, #/plan, #/timetable, #/history) ----
-const TABS = { chat: "Chat", map: "Course map", plan: "My plan", timetable: "Timetable", history: "History" };
-const VIEWS = ["chat", "map", "course", "plan", "timetable", "history"];
+// ---- Tabs (hash routes: #/chat, #/map[/CODE], #/course/CODE, #/plan, #/programs, #/enrolment, #/history) ----
+const TABS = { chat: "Chat", map: "Course map", plan: "My plan", programs: "Programs", enrolment: "Enrolment check", history: "History" };
+const VIEWS = ["chat", "map", "course", "plan", "programs", "enrolment", "history"];
 
 function route() {
   const [, tab = "chat", arg] = location.hash.match(/^#\/(\w+)(?:\/([A-Za-z0-9]+))?/) || [];
@@ -32,8 +34,9 @@ function route() {
   if (view !== "chat") closeReader();
   if (view === "map" && canAsk()) showMap(arg ? arg.toUpperCase() : null);
   if (view === "course" && canAsk() && arg) showCourse(arg.toUpperCase());
-  if (view === "plan" && canAsk()) showPlan();
-  if (view === "timetable" && canAsk()) showTimetable();
+  if (view === "plan" && canAsk()) showPlan(arg === "critic");
+  if (view === "programs" && canAsk()) showPrograms();
+  if (view === "enrolment" && canAsk()) showEnrolment();
   if (view === "history" && canAsk()) showHistory();
   const active = current === "course" ? "map" : current; // course pages hang off the map tab
   document.querySelectorAll(".tabs a").forEach((a) => {
@@ -73,7 +76,7 @@ function setBusy(busy) {
 function planFromAnswer(text) {
   const terms = [];
   for (const m of text.matchAll(/\*\*(\d{4} (?:Fall|Winter|Summer))\*\*:?\s*([^\n]*)/g)) {
-    const courses = m[2].match(/\b[A-Z]{3}\d{3}[HY]\d\b/g) || [];
+    const courses = m[2].match(/\b[A-Z]{3}[A-D0-9]\d{2}[HY]\d\b/g) || [];
     if (courses.length) terms.push({ term: m[1], courses });
   }
   return terms;
@@ -117,7 +120,7 @@ function newTurn(message) {
   user.textContent = message;
   const row = document.createElement("div");
   row.className = "turn-pip";
-  row.innerHTML = `<div class="pip-slot">${pipSvg("thinking", 84)}</div><div class="card glass"><div class="working-title">Pip is working on it</div><ol class="steps" aria-label="Steps"></ol><div class="answer"></div></div>`;
+  row.innerHTML = `<div class="pip-slot">${pipSvg("thinking", 84)}</div><div class="card glass"><div class="working-title">Pip is working on it</div><ol class="steps" aria-label="Steps"></ol><div class="answer"></div><div class="sources-foot" hidden></div></div>`;
   $("empty").hidden = true;
   $("log").append(user, row);
   const turn = {
@@ -129,6 +132,8 @@ function newTurn(message) {
     card: row.querySelector(".card"),
     stepsEl: row.querySelector(".steps"),
     answerEl: row.querySelector(".answer"),
+    sourcesEl: row.querySelector(".sources-foot"),
+    showAll: false,
   };
   turns.set(row, turn);
   scrollToEnd(row);
@@ -178,11 +183,11 @@ function actionsFor(turn) {
   const ids = { session_id: turn.stream.final?.session_id || "", answer_id: turn.stream.final?.answer_id || "" };
   const bar = document.createElement("div");
   bar.className = "actions";
-  const codes = [...new Set(turn.stream.text.match(/\b[A-Z]{3}\d{3}[HY]\d\b/g) || [])];
+  const codes = [...new Set(turn.stream.text.match(/\b[A-Z]{3}[A-D0-9]\d{2}[HY]\d\b/g) || [])];
   const mapBtn = codes.length ? `<a class="btn primary" href="#/map/${escapeHtml(codes[0])}">See it on the course map</a>` : "";
   const planBtn = codes.length ? `<button type="button" class="btn" data-add-plan="${escapeHtml(codes[0])}">Add ${escapeHtml(codes[0])} to my plan</button>` : "";
   const draft = planFromAnswer(turn.stream.text);
-  const draftBtn = draft.length ? `<button type="button" class="btn" data-save-plan>Save as a plan</button>` : "";
+  const draftBtn = draft.length ? `<button type="button" class="btn" data-save-plan>Save as a plan</button><button type="button" class="btn" data-critic>Check it in My plan</button>` : "";
   bar.innerHTML =
     mapBtn + planBtn + draftBtn +
     `<a class="btn" id="advisor-${ids.answer_id}" href="${escapeHtml(app.advisorUrl)}" target="_blank" rel="noopener">Ask an advisor</a>` +
@@ -219,6 +224,19 @@ function actionsFor(turn) {
       const plan = await api("POST", "/api/plans", { name: "Plan from chat", terms: draft });
       invalidatePlans();
       say(`Saved as ${escapeHtml(plan.name)}. ${planLink(plan)}`);
+    } catch (err) {
+      button.disabled = false;
+      say(escapeHtml(err.message));
+    }
+  });
+  // The critic lives in My plan: this saves the draft (once) and opens the critic panel there. It never posts into chat.
+  bar.querySelector("[data-critic]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      if (!turn.savedPlan) turn.savedPlan = await api("POST", "/api/plans", { name: "Plan from chat", terms: draft });
+      invalidatePlans();
+      location.hash = "#/plan/critic";
     } catch (err) {
       button.disabled = false;
       say(escapeHtml(err.message));
@@ -290,31 +308,29 @@ function mergeSources(stream) {
   return [...stream.sources, ...extra];
 }
 
-// ---- Sources panel ----
-let shownAll = false;
-
+// ---- Sources (bottom of each answer, collapsed: top 3 as chips, "+N more") ----
 function showSources(turn, sources) {
   app.turn = turn;
-  const rows = shownAll ? sources : sources.slice(0, 3);
-  $("sources-none").hidden = sources.length > 0;
-  $("sources-count").textContent = sources.length ? `${sources.length} · Academic Calendar` : "";
-  $("sources-list").innerHTML = rows
-    .map(
-      (s) =>
-        `<button type="button" class="source-row" data-source="${s.n}"><span class="n">${s.n}</span>` +
-        `<span class="t"><strong>${escapeHtml(s.code || s.title)}</strong>${s.code ? `<small>${escapeHtml(s.title)}</small>` : ""}</span></button>`,
-    )
-    .join("");
-  const more = $("sources-more");
-  more.hidden = sources.length <= 3;
-  more.textContent = shownAll ? "Show top 3" : `+${sources.length - 3} more sources`;
-  more.setAttribute("aria-expanded", String(shownAll));
-  $("sources-list").querySelectorAll(".source-row").forEach((el) => el.classList.toggle("active", reader.open && Number(el.dataset.source) === reader.n));
+  const foot = turn.sourcesEl;
+  if (!sources.length) {
+    foot.hidden = true;
+    return;
+  }
+  const rows = turn.showAll ? sources : sources.slice(0, 3);
+  const extra = sources.length - 3;
+  foot.hidden = false;
+  foot.innerHTML =
+    `<span class="label">Sources \u00b7 ${sources.length}</span>${rows.map(sourceChip).join("")}` +
+    (extra > 0 ? `<button type="button" class="more" aria-expanded="${turn.showAll}">${turn.showAll ? "Show top 3" : `+${extra} more`}</button>` : "");
+  foot.querySelectorAll(".source-chip").forEach((chip) => chip.classList.toggle("active", reader.open && reader.turn === turn && Number(chip.dataset.source) === reader.n));
 }
 
-$("sources-more").addEventListener("click", () => {
-  shownAll = !shownAll;
-  if (app.turn) showSources(app.turn, app.turn.stream.sources);
+document.addEventListener("click", (e) => {
+  const more = e.target.closest(".sources-foot .more");
+  if (!more) return;
+  const turn = turnFor(more);
+  turn.showAll = !turn.showAll;
+  showSources(turn, turn.stream.sources);
 });
 
 // ---- Source reader ----
@@ -382,7 +398,7 @@ function closeReader() {
   if (!reader.open) return;
   reader.open = false;
   $("reader").hidden = true;
-  document.querySelectorAll(".source-row.active, .cite.active").forEach((el) => el.classList.remove("active"));
+  document.querySelectorAll(".source-chip.active, .cite.active").forEach((el) => el.classList.remove("active"));
   reader.trigger?.focus?.();
 }
 
@@ -407,7 +423,7 @@ $("reader-mismatch").addEventListener("click", async () => {
 
 // Citation badges inside answers and rows in the Sources panel both open the reader.
 document.addEventListener("click", (e) => {
-  const badge = e.target.closest(".cite, .source-row");
+  const badge = e.target.closest(".cite, .source-chip");
   if (!badge || badge.closest("#view-plan, #view-history")) return; // those pages open their own sources
   const turn = badge.closest(".turn-pip") ? turnFor(badge) : app.turn;
   if (turn) openReader(turn, Number(badge.dataset.source), badge);
@@ -435,6 +451,10 @@ async function checkProfile() {
   }
 }
 
+window.addEventListener("waypoint:status-changed", () => {
+  invalidateMap();
+  invalidatePlans();
+});
 onProfileChange(() => {
   invalidateMap();
   invalidatePlans();
@@ -450,6 +470,7 @@ async function init() {
   const config = await (await fetch("/api/config")).json();
   app.advisorUrl = config.advisor_url;
   $("advisor-link").href = config.advisor_url;
+  $("coverage-text").textContent = coverageText(config.coverage);
   if (config.dev_mode) {
     session.devMode = true;
     signedIn("Dev");
@@ -485,7 +506,8 @@ window.addEventListener("hashchange", route);
 wireMap();
 wireCourse();
 wirePlan();
-wireTimetable();
+wirePrograms();
+wireEnrolment();
 wireHistory();
 route();
 init();

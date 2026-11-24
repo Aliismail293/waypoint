@@ -26,7 +26,8 @@ from waypoint.tools.catalog import InMemoryCatalog
 from waypoint.tools.plan import validate_plan_text
 
 CATALOG = InMemoryCatalog()
-OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory")
+# fact_route off: these tests exercise the agent/router/stream paths; the fact route has tests/test_facts.py
+OFFLINE = dict(llm="mock", embeddings="mock", store="memory", catalog="memory", sessions="memory", fact_route="off")
 
 
 def plan(*terms: tuple[str, list[str]]) -> Plan:
@@ -86,54 +87,87 @@ def test_add_course_opens_a_new_term_when_none_fits_and_refuses_duplicates():
 # ---- the critic report ----
 
 
-def test_prerequisite_order_error_has_a_citation_and_goes_away_when_fixed():
-    broken = review_plan(plan(("2026 Fall", ["MAT224H5"])), profile(), CATALOG)
-    errors = levels(broken, "error")
-    assert broken["status"] == "errors" and "MAT224H5" in errors[0]["text"] and "MAT223H5" in errors[0]["text"]
-    assert errors[0]["chunk_ids"] == ["cal:mathematical-sciences#mat224h5"]
+def test_missing_prerequisite_is_a_neutral_note_with_a_citation_not_an_error():
+    report = review_plan(plan(("2026 Fall", ["MAT224H5"])), profile(), CATALOG)
+    notes = levels(report, "note")
+    assert report["status"] == "notes" and not levels(report, "headsup") and not levels(report, "error")
+    assert "MAT224H5" in notes[0]["text"] and "MAT102H5 and MAT223H5" in notes[0]["text"]
+    assert notes[0]["chunk_ids"] == ["cal:mathematical-sciences#mat224h5"]
+    # the card's "i" popover carries the full requirement in plain words
+    assert report["cards"]["MAT224H5"]["lines"][0] == "MAT102H5 and MAT223H5"
 
     fixed = review_plan(
-        plan(("2026 Fall", ["MAT102H5", "MAT223H5"]), ("2027 Winter", ["MAT224H5"])), profile(), CATALOG
+        plan(("2026 Fall", ["MAT102H5", "MAT223H5"]), ("2027 Winter", ["MAT224H5"])), profile(program=""), CATALOG
     )
-    assert not levels(fixed, "error")
-    assert levels(fixed, "ok")[0]["text"].startswith("Every planned course comes after")
-    assert "cal:mathematical-sciences#mat224h5" in levels(fixed, "ok")[0]["chunk_ids"]
+    assert fixed["status"] == "ok" and not levels(fixed, "headsup") and not levels(fixed, "note")
+    assert levels(fixed, "ok")[0]["text"].startswith("No heads-ups")
 
 
-def test_same_term_prerequisite_is_not_enough():
-    report = review_plan(plan(("2026 Fall", ["MAT102H5", "MAT223H5", "MAT224H5"])), profile(), CATALOG)
-    assert any("MAT224H5" in i["text"] and "needs" in i["text"] for i in levels(report, "error"))
+def test_prerequisite_in_the_same_or_a_later_term_is_a_headsup():
+    same = review_plan(plan(("2026 Fall", ["MAT102H5", "MAT223H5", "MAT224H5"])), profile(), CATALOG)
+    heads = levels(same, "headsup")
+    assert same["status"] == "headsup" and "MAT224H5" in heads[0]["text"] and "the same term" in heads[0]["text"]
+    later = review_plan(
+        plan(("2026 Fall", ["MAT224H5", "MAT102H5"]), ("2027 Winter", ["MAT223H5"])), profile(), CATALOG
+    )
+    assert any("MAT224H5" in i["text"] and "2027 Winter" in i["text"] for i in levels(later, "headsup"))
+    # the spec's own example: MAT135H5 and MAT136H5 in one term
+    pair = review_plan(plan(("2026 Fall", ["MAT135H5", "MAT136H5"])), profile(), CATALOG)
+    assert any("MAT136H5" in i["text"] and "MAT135H5" in i["text"] for i in levels(pair, "headsup"))
 
 
 def test_courses_the_student_has_or_is_taking_count_as_in_hand():
     p = plan(("2027 Winter", ["MAT224H5"]))
-    assert not levels(review_plan(p, profile(done=["MAT102H5"], now=["MAT223H5"]), CATALOG), "error")
+    report = review_plan(p, profile(done=["MAT102H5"], now=["MAT223H5"], program=""), CATALOG)
+    assert not levels(report, "headsup") and not levels(report, "note")
+
+
+def test_highschool_prerequisite_is_never_flagged_and_the_toggle_is_remembered():
+    p = plan(("2026 Fall", ["MAT135H5"]))
+    report = review_plan(p, profile(program=""), CATALOG)
+    assert report["status"] == "ok" and not levels(report, "note")  # nothing to flag: high school isn't a plan item
+    assert "Grade 12 MHF4U" in report["cards"]["MAT135H5"]["lines"][-1]  # but the "i" says what can't be checked
+    done = Profile(highschool_done=True)
+    cleared = review_plan(p, done, CATALOG)
+    assert "can't check" not in " ".join(cleared["cards"]["MAT135H5"]["lines"])
 
 
 def test_credit_load_per_term_and_exclusions_and_repeats():
     six = ["MAT102H5", "MAT223H5", "MAT232H5", "MAT202H5", "MAT236H5", "MAT244H5"]  # 3.0 credits
     heavy = review_plan(plan(("2026 Fall", six)), profile(), CATALOG)
-    assert any("3 credits" in i["text"] for i in levels(heavy, "error"))
+    assert any("3 credits" in i["text"] for i in levels(heavy, "headsup"))
     exclusion = review_plan(plan(("2026 Fall", ["MAT102H5"])), profile(done=["CSC110Y5"]), CATALOG)
-    assert any("exclusion" in i["text"] for i in levels(exclusion, "error"))
+    assert any("exclude each other" in i["text"] for i in levels(exclusion, "headsup"))
+    both = review_plan(plan(("2026 Fall", ["MAT223H5", "MAT240H5"])), profile(), CATALOG)
+    assert len([i for i in levels(both, "headsup") if "exclude each other" in i["text"]]) == 1  # reported once
     again = review_plan(plan(("2026 Fall", ["MAT102H5"])), profile(done=["MAT102H5"]), CATALOG)
-    assert any("already taken" in i["text"] for i in levels(again, "warn"))
+    assert any("already taken" in i["text"] for i in levels(again, "headsup"))
 
 
 def test_program_credit_progress_cites_the_program_and_is_honest_when_unknown():
     p = plan(("2026 Fall", ["MAT102H5", "MAT223H5"]))
     low = review_plan(p, profile(program="ERMAJ2511"), CATALOG)
-    note = next(i for i in levels(low, "warn") if "needs" in i["text"] and "credits" in i["text"])
-    assert "8.5–9" in note["text"] and note["chunk_ids"]  # cited from the program record
+    note = next(i for i in levels(low, "note") if "needs" in i["text"] and "credits" in i["text"])
+    assert "8.5-9" in note["text"] and note["chunk_ids"]  # cited from the program record
     assert low["credits"]["required"] == [8.5, 9.0] and low["credits"]["counted"] == 1.0
     nothing = review_plan(p, profile(program=""), CATALOG)
-    assert nothing["credits"]["required"] is None and "Set your program" in levels(nothing, "warn")[-1]["text"]
+    assert nothing["credits"]["required"] is None
+
+
+def test_program_rule_exclusion_is_a_headsup_only_when_both_programs_are_chosen():
+    p = plan(("2026 Fall", ["MAT102H5"]))
+    both = Profile(programs=["ERMAJ2511", "ERMAJ2512"], program="ERMAJ2511")
+    assert any(
+        "cannot be simultaneously enrolled" in i["text"] for i in levels(review_plan(p, both, CATALOG), "headsup")
+    )
+    one = Profile(programs=["ERMAJ2511"], program="ERMAJ2511")
+    assert not levels(review_plan(p, one, CATALOG), "headsup")
 
 
 def test_empty_plan_and_unknown_course_do_not_crash():
     assert review_plan(Plan(), profile(), CATALOG)["status"] == "empty"
     unknown = review_plan(plan(("2026 Fall", ["ZZZ999H5"])), profile(), CATALOG)
-    assert "isn't in Waypoint's course data" in levels(unknown, "error")[0]["text"]
+    assert "isn't in Waypoint's course data" in levels(unknown, "note")[0]["text"]
 
 
 @pytest.mark.parametrize(
@@ -145,12 +179,13 @@ def test_empty_plan_and_unknown_course_do_not_crash():
         [("2026 Fall", ["MAT102H5", "MAT223H5", "MAT232H5", "MAT202H5", "MAT236H5", "MAT244H5"])],
     ],
 )
-def test_review_agrees_with_the_existing_plan_validator(terms):
+def test_a_headsup_is_never_raised_for_a_plan_the_validator_accepts(terms):
     p = tidy(plan(*terms))
     done: list[str] = []
     ours = review_plan(p, profile(done=done), CATALOG)
     theirs = validate_plan_text(plan_text(p), done, CATALOG)
-    assert (ours["status"] != "errors") == theirs["valid"]
+    if ours["status"] == "headsup":
+        assert not theirs["valid"]  # the review is deliberately the narrower of the two: real conflicts only
 
 
 # ---- timetable ----
@@ -244,7 +279,7 @@ def test_plan_lifecycle_review_on_every_change_and_isolation(client):
     )
     assert created.status_code == 200
     body = created.json()
-    assert body["review"]["status"] == "errors"  # MAT224H5 needs MAT223H5 first
+    assert body["review"]["status"] == "notes"  # MAT224H5 asks for MAT223H5, which isn't in the plan: a note
 
     moved = client.put(
         f"/api/plans/{body['id']}",
@@ -254,7 +289,8 @@ def test_plan_lifecycle_review_on_every_change_and_isolation(client):
         },
         headers=h,
     ).json()
-    assert not [i for i in moved["review"]["items"] if i["level"] == "error"]
+    assert not [i for i in moved["review"]["items"] if i["level"] == "headsup"]
+    assert not [i for i in moved["review"]["items"] if i["level"] == "note" and "asks for" in i["text"]]
 
     dup = client.post(f"/api/plans/{body['id']}/duplicate", json={}, headers=h).json()
     assert dup["name"] == "Plan B" and dup["id"] != body["id"] and dup["terms"] == moved["terms"]
@@ -295,21 +331,16 @@ def test_add_course_from_chat_creates_plan_a_then_extends_it(client):
     assert len(client.get("/api/plans", headers=h).json()["plans"]) == 1
 
 
-def test_timetable_api_saves_the_chosen_sections_and_reports_clashes(client):
+def test_timetable_routes_are_gone_from_the_user_path(client):
     h = H("ana")
-    plan_id = client.post(
-        "/api/plans", json={"terms": [{"term": W, "courses": ["MAT224H5", "MAT244H5"]}]}, headers=h
-    ).json()["id"]
-    view = client.get(f"/api/plans/{plan_id}/timetable", params={"term": W}, headers=h).json()
-    assert view["clashes"] == [] and view["data_source"].startswith("sample")
-    clash = client.put(
-        f"/api/plans/{plan_id}/timetable",
-        json={"term": W, "section_ids": ["MAT224H5-20271-LEC0102", "MAT244H5-20271-LEC0101"]},
-        headers=h,
-    ).json()
-    assert len(clash["clashes"]) == 1 and clash["fixes"][0]["to"] == "MAT224H5-20271-LEC0101"
-    saved = client.get(f"/api/plans/{plan_id}/timetable", params={"term": W}, headers=h).json()
-    assert [c["section_id"] for c in saved["chosen"]] == [c["section_id"] for c in clash["chosen"]]  # remembered
+    plan_id = client.post("/api/plans", json={"terms": [{"term": W, "courses": ["MAT224H5"]}]}, headers=h).json()["id"]
+    assert client.get(f"/api/plans/{plan_id}/timetable", params={"term": W}, headers=h).status_code in (404, 405)
+    assert client.put(
+        f"/api/plans/{plan_id}/timetable", json={"term": W, "section_ids": []}, headers=h
+    ).status_code in (
+        404,
+        405,
+    )
 
 
 def test_delete_my_data_also_removes_plans(client):

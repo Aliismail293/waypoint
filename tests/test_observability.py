@@ -17,7 +17,7 @@ def test_cost_model():
 
 async def test_request_span_and_llm_spans_carry_metrics(spans):
     exporter = spans
-    runtime = WaypointRuntime.from_settings(Settings(llm="mock", embeddings="mock", router="off"))
+    runtime = WaypointRuntime.from_settings(Settings(llm="mock", embeddings="mock", router="off", fact_route="off"))
     answer = await runtime.ask("student@example.com", "What are the prerequisites for MAT224?")
     spans = exporter.get_finished_spans()
     request = next(s for s in spans if s.name == "waypoint.request")
@@ -37,7 +37,9 @@ async def test_request_span_and_llm_spans_carry_metrics(spans):
 async def test_question_text_reaches_spans_only_when_trace_content_is_on(spans, monkeypatch, trace_content):
     # An env var that would turn content capture on must not override Settings.trace_content=False.
     monkeypatch.setenv("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", "SPAN_ONLY")
-    runtime = WaypointRuntime.from_settings(Settings(llm="mock", embeddings="mock", trace_content=trace_content))
+    runtime = WaypointRuntime.from_settings(
+        Settings(llm="mock", embeddings="mock", trace_content=trace_content, fact_route="off")
+    )
     await runtime.ask("sub-1", "What are the prerequisites for MAT224? I'm Zebracorn.")
     texts = [str(v) for s in spans.get_finished_spans() for v in (s.attributes or {}).values()]
     assert any("Zebracorn" in t for t in texts) is trace_content

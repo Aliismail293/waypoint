@@ -203,6 +203,7 @@ export async function openSettings() {
     `<h2 id="settings-title">Your profile</h2>` +
     `<p class="muted">Used to tailor Pip's answers. Course codes, program and graduation year only: no grades, no student number.</p>` +
     `<label for="st-program" class="q">Program</label>${programSelect("st-program", profile.program)}` +
+    `<label class="check"><input type="checkbox" id="st-hs"${profile.highschool_done ? " checked" : ""}> I completed the high-school prerequisites for university math (MHF4U, MCV4U)</label>` +
     `<span class="q">Courses</span><div id="st-courses"></div>` +
     `<span class="q">Graduation year</span><div class="years" role="group" aria-label="Graduation year">${yearButtons(year)}</div>` +
     `<p class="form-error" id="st-error" role="alert"></p><p class="form-ok" id="st-ok" role="status"></p>` +
@@ -221,7 +222,9 @@ export async function openSettings() {
     else if (t.id === "st-save") {
       try {
         if (editor.pending()) await editor.add();
-        await save({ program: el("st-program").value, courses: editor.courses(), grad_year: year });
+        const primary = el("st-program").value;
+        const programs = [primary, ...(profile.programs || []).filter((p) => p !== primary)].filter(Boolean);
+        await save({ program: primary, programs, courses: editor.courses(), grad_year: year, highschool_done: el("st-hs").checked });
         el("st-ok").textContent = "Saved.";
       } catch (err) {
         el("st-error").textContent = err.message;
@@ -233,7 +236,7 @@ export async function openSettings() {
         return;
       }
       await api("DELETE", "/api/profile");
-      onChange({ courses: [], program: "", grad_year: null, onboarded: false });
+      onChange({ courses: [], program: "", programs: [], grad_year: null, onboarded: false, highschool_done: false });
       el("settings").close();
     }
   };

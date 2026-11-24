@@ -86,5 +86,5 @@ export function claimFor(answer, chunkId) {
     .slice(0, 400);
 }
 
-const COURSE_CODE_G = /\b[A-Z]{3}\d{3}[HY]\d\b/g;
+const COURSE_CODE_G = /\b[A-Z]{3}[A-D0-9]\d{2}[HY]\d\b/g;
 export const COURSE_CODE = COURSE_CODE_G;

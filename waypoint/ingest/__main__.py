@@ -2,6 +2,7 @@
 
     uv run python -m waypoint.ingest fetch        # polite fetch of calendar pages into data/raw/calendar
     uv run python -m waypoint.ingest parse        # cached HTML -> data/corpus/*.jsonl (committed)
+    uv run python -m waypoint.ingest build-v3     # cached pages of every campus -> data/corpus/v3/*.jsonl
     uv run python -m waypoint.ingest pgvector     # embed new/changed chunks, upsert into Cloud SQL
     uv run python -m waypoint.ingest bigquery     # load courses + programs into BigQuery
 
@@ -17,7 +18,7 @@ from urllib.parse import unquote
 
 from waypoint.config import get_settings
 from waypoint.ingest.calendar_parser import parse_page
-from waypoint.ingest.fetch import ALL_PAGES, DEFAULT_CACHE, CalendarFetcher
+from waypoint.ingest.fetch import ALL_PAGES, DEFAULT_CACHE, CalendarFetcher, SourceBlocked
 
 CORPUS_DIR = Path("data/corpus")
 
@@ -27,7 +28,10 @@ def cmd_fetch(_: argparse.Namespace) -> None:
     for path in ALL_PAGES:
         try:
             print(f"{path}: {len(fetcher.get(path))} bytes")
-        except Exception as exc:  # keep going: one blocked page shouldn't stop the rest
+        except SourceBlocked as exc:  # a blocked site stays blocked: stop, don't try the other pages
+            print(f"{path}: STOPPED ({exc})", file=sys.stderr)
+            break
+        except Exception as exc:  # any other failure only skips this page
             print(f"{path}: FAILED ({exc})", file=sys.stderr)
 
 
@@ -50,6 +54,19 @@ def cmd_parse(args: argparse.Namespace) -> None:
             for row in rows:
                 out.write(json.dumps(row, ensure_ascii=False) + "\n")
     print(f"wrote {len(chunks)} chunks, {len(courses)} courses, {len(programs)} programs to {CORPUS_DIR}/")
+
+
+def cmd_build_v3(_: argparse.Namespace) -> None:
+    """Cached pages (all campuses) -> data/corpus/v3/*.jsonl, then print per-campus coverage."""
+    from waypoint.ingest import v3
+
+    tables = v3.build()
+    v3.write(tables)
+    for row in v3.coverage(tables):
+        state = "BLOCKED (see _BLOCKED.json)" if row["blocked"] else "ok"
+        counts = f"{row['courses']} courses, {row['programs']} programs, parse {row['parse_percent']}%"
+        print(f"{row['campus']}: {counts} [{state}]")
+    print(f"codes named in prerequisites but not in the data: {len(v3.unknown_codes(tables))}")
 
 
 def _invalidate_answer_cache() -> None:
@@ -86,6 +103,7 @@ def main() -> None:
     pg = sub.add_parser("pgvector")
     pg.add_argument("--prune", action="store_true", help="delete chunks no longer in the corpus")
     pg.set_defaults(func=cmd_pgvector)
+    sub.add_parser("build-v3").set_defaults(func=cmd_build_v3)
     sub.add_parser("bigquery").set_defaults(func=cmd_bigquery)
     args = parser.parse_args()
     args.func(args)

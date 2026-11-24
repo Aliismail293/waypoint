@@ -1,0 +1,54 @@
+{
+  "name": "eval_v3_stage1",
+  "created_at": "2026-11-14T22:36:33.934100+00:00",
+  "llm": "openai",
+  "mode": "agent",
+  "split": "test",
+  "k": 5,
+  "questions": 21,
+  "pass_rate": 0.4762,
+  "answer_accuracy": 0.619,
+  "retrieval_hit_rate": 0.7143,
+  "mrr": 0.6905,
+  "failure_counts": {
+    "pass": 10,
+    "retrieval_miss": 6,
+    "generation_miss": 5
+  },
+  "verdict_counts": {
+    "true_pass": 10,
+    "lucky_pass": 3,
+    "generation_failure": 5,
+    "retrieval_failure": 3
+  },
+  "adapter_errors": 0,
+  "judge_failures": 0,
+  "p50_latency_ms": 3998.9,
+  "p95_latency_ms": 6877.8,
+  "ttft_p50_ms": 3822.1,
+  "ttft_p95_ms": 6814.2,
+  "by_route": {
+    "fact": {
+      "n": 1,
+      "ttft_p50_ms": 1571.8,
+      "ttft_p95_ms": 1571.8,
+      "total_p50_ms": 1571.8,
+      "total_p95_ms": 1571.8,
+      "mean_model_calls": 1.0
+    },
+    "fast": {
+      "n": 20,
+      "ttft_p50_ms": 3822.1,
+      "ttft_p95_ms": 19295.0,
+      "total_p50_ms": 3998.9,
+      "total_p95_ms": 19386.8,
+      "mean_model_calls": 3.0
+    }
+  },
+  "mean_cost_per_query_usd": 0.00394,
+  "total_agent_cost_usd": 0.0828,
+  "mean_model_calls": 2.9,
+  "mean_tokens_per_second": 14.7,
+  "limit_hits": 0,
+  "invalid_citations": 5
+}
