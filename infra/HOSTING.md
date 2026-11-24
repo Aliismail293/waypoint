@@ -9,9 +9,13 @@ Firebase had to be added to the GCP project first (`firebase projects:addfirebas
 below use the old placeholder name `waypoint-planner`, which is taken by another project.
 
 **Measured: Hosting buffers the SSE stream.** Through web.app every event of an answer arrived at the same moment
-(20 events at 7.4 s; `scripts/check_stream.sh` reports "first byte at the end"), while the Cloud Run URL streamed the
-same kind of answer over 15 s. Answers still arrive, within Hosting's 60 s limit. To get streaming back on the short
-address, use the fallback in step 2 below.
+(20 events at 7.4 s), while the Cloud Run URL streamed the same kind of answer over 15 s. So the page streams around
+Hosting: `/api/config` tells it `stream_url` (the Cloud Run service URL) and `stream_origins` (the Hosting origins), and
+a page served from one of those origins sends `POST /api/chat/stream`, and only that, straight to Cloud Run with its
+`Authorization` header. Cloud Run allows those origins by CORS (`WAYPOINT_CORS_ORIGINS`, preflight cached 10 minutes).
+Everything else (the page, config, plans, map) stays on Hosting. `infra/deploy.sh` sets both variables.
+`scripts/check_stream.sh https://waypoint-courses.web.app "$(gcloud auth print-identity-token)"` follows the same path
+(config, preflight, cross-origin stream with a fresh uncached question) and fails if the events arrive all at once.
 
 ## One-time setup
 
@@ -46,9 +50,6 @@ the short URL, first promote it: `gcloud run services update-traffic waypoint --
 1. **OAuth origins** (Google Cloud console, APIs & Services, Credentials, the Web client used for Sign-In): add
    `https://waypoint-planner.web.app` and `https://waypoint-planner.firebaseapp.com` under **Authorised JavaScript
    origins**. Without this, Google Sign-In fails on the new address with `origin_mismatch`.
-2. **Streaming check** (not tested here; Hosting needs credentials): open the site, sign in, ask a question, and
-   confirm the answer streams word by word. Hosting proxies Cloud Run responses with a 60 second limit, and V2 answers
-   normally finish well within that. If it buffers or times out, fall back to the Cloud Run URL (it stays valid) and
-   set `WAYPOINT_CORS_ORIGINS=https://waypoint-planner.web.app` on the service, then point the front end at the Cloud
-   Run URL for `/api`. CORS is off unless that variable is set.
+2. **Streaming check**: `scripts/check_stream.sh https://SITE.web.app "$(gcloud auth print-identity-token)"`. It
+   must report the stream coming from the Cloud Run URL and "streaming OK". The Cloud Run URL keeps working on its own.
 3. Update the README "Live URL" line and the Sign-In consent screen's authorised domain (`web.app`) if prompted.

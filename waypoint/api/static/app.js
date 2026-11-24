@@ -11,9 +11,9 @@ import { showEnrolment, wireEnrolment } from "./js/enrolment-view.js";
 import { showPrograms, wirePrograms } from "./js/programs-view.js";
 import { onProfileChange, openSettings, startOnboarding } from "./js/profile-view.js";
 import { api, authHeaders, canAsk, errorFrom, postJson, session } from "./js/session.js";
-import { initialStream, readEvents, reduce, stepsSummary } from "./js/stream.js";
+import { initialStream, readEvents, reduce, stepsSummary, streamBase } from "./js/stream.js";
 
-const app = { sessionId: null, advisorUrl: "#", busy: false, turn: null };
+const app = { sessionId: null, advisorUrl: "#", busy: false, turn: null, streamBase: "" };
 const $ = (id) => document.getElementById(id);
 
 const CHECK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E7A43" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
@@ -291,7 +291,7 @@ async function ask(message) {
   app.turn = turn;
   setBusy(true);
   try {
-    const response = await fetch("/api/chat/stream", {
+    const response = await fetch(`${app.streamBase}/api/chat/stream`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({ message, session_id: app.sessionId }),
@@ -487,6 +487,7 @@ async function init() {
   $("empty-pip").innerHTML = pipSvg("idle", 84);
   const config = await (await fetch("/api/config")).json();
   app.advisorUrl = config.advisor_url;
+  app.streamBase = streamBase(config, location.origin);
   $("advisor-link").href = config.advisor_url;
   $("coverage-text").textContent = coverageText(config.coverage);
   if (config.dev_mode) {

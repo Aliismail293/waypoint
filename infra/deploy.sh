@@ -18,6 +18,11 @@ fi
 
 # WAYPOINT_PLAN_BUDGET_S=20: back from 45 s. Plans now come from the fast planner (waypoint/fastplan.py, P95 3.2 s on
 # evals/planning_questions.jsonl); the limit only bounds the agent-planner fallback, well under Hosting's 60 s proxy limit.
+# Firebase Hosting buffers Server-Sent Events, so pages it serves stream answers straight from Cloud Run: the service's
+# own URL (stable across revisions) and the Hosting origins allowed to call it cross-origin.
+SITE_ORIGINS=${SITE_ORIGINS:-https://waypoint-courses.web.app,https://waypoint-courses.firebaseapp.com}
+STREAM_URL=${STREAM_URL:-$(gcloud run services describe "$SERVICE" --project "$P" --region "$REGION" \
+  --format='value(status.url)' 2>/dev/null || true)}
 cd "$(dirname "$0")/.."
 bash infra/check_deploy_iam.sh "$P"
 
@@ -29,7 +34,7 @@ gcloud run deploy "$SERVICE" ${TRAFFIC_FLAGS[@]+"${TRAFFIC_FLAGS[@]}"} \
   --cpu 1 --memory 1Gi --timeout 300 --cpu-boost \
   --add-cloudsql-instances "$SQL_INSTANCE" \
   --set-secrets "WAYPOINT_DB_PASSWORD=db-password:latest,WAYPOINT_LANGFUSE_PUBLIC_KEY=langfuse-public-key:latest,WAYPOINT_LANGFUSE_SECRET_KEY=langfuse-secret-key:latest" \
-  --set-env-vars "^@^WAYPOINT_LLM=vertex@WAYPOINT_EMBEDDINGS=vertex@WAYPOINT_STORE=pgvector@WAYPOINT_CATALOG=bigquery@WAYPOINT_SESSIONS=firestore@WAYPOINT_ANSWER_CACHE=firestore@WAYPOINT_CLOUD_TRACE=true@WAYPOINT_DB_HOST=/cloudsql/$SQL_INSTANCE@WAYPOINT_GOOGLE_CLIENT_ID=$CLIENT_ID@WAYPOINT_GCP_PROJECT=$P@WAYPOINT_PLAN_BUDGET_S=20"
+  --set-env-vars "^@^WAYPOINT_LLM=vertex@WAYPOINT_EMBEDDINGS=vertex@WAYPOINT_STORE=pgvector@WAYPOINT_CATALOG=bigquery@WAYPOINT_SESSIONS=firestore@WAYPOINT_ANSWER_CACHE=firestore@WAYPOINT_CLOUD_TRACE=true@WAYPOINT_DB_HOST=/cloudsql/$SQL_INSTANCE@WAYPOINT_GOOGLE_CLIENT_ID=$CLIENT_ID@WAYPOINT_GCP_PROJECT=$P@WAYPOINT_PLAN_BUDGET_S=20@WAYPOINT_CORS_ORIGINS=$SITE_ORIGINS@WAYPOINT_STREAM_URL=$STREAM_URL"
 
 if [ -n "$TAG" ]; then
   # status.traffic is a list; read it as JSON and pick the entry with this tag (the gcloud filter() projection

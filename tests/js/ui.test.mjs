@@ -5,7 +5,7 @@ import test from "node:test";
 
 import { badgeLabel, claimFor, groupNumbers, renderMarkdown, stripPartialCitation } from "../../waypoint/api/static/js/citations.js";
 import { PIP_STATES, pipSvg } from "../../waypoint/api/static/js/pip.js";
-import { initialStream, parseSSE, reduce, stepsSummary } from "../../waypoint/api/static/js/stream.js";
+import { initialStream, parseSSE, reduce, stepsSummary, streamBase } from "../../waypoint/api/static/js/stream.js";
 
 const run = (events) => events.reduce((s, [name, data]) => reduce(s, name, data), initialStream());
 
@@ -54,6 +54,15 @@ test("stream reducer: a plan event is kept and starts the turn before any text",
   assert.equal(s.started, true);
   assert.equal(s.text, "");
   assert.equal(initialStream().plan, null);
+});
+
+test("streamBase: Hosting origins stream from Cloud Run; any other origin stays same-origin", () => {
+  const config = { stream_url: "https://waypoint-x.a.run.app", stream_origins: ["https://site.web.app"] };
+  assert.equal(streamBase(config, "https://site.web.app"), "https://waypoint-x.a.run.app");
+  assert.equal(streamBase(config, "https://waypoint-x.a.run.app"), "");
+  assert.equal(streamBase(config, "http://localhost:8080"), "");
+  assert.equal(streamBase({ stream_url: "", stream_origins: [] }, "https://site.web.app"), "");
+  assert.equal(streamBase({}, "https://site.web.app"), "");
 });
 
 test("stepsSummary: 'N steps · X s'", () => {
