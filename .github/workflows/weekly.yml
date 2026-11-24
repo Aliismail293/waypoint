@@ -15,8 +15,8 @@ jobs:
   health:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --all-groups --frozen
       - run: uv run pytest -q
       - name: Live smoke test (skipped unless the GCP secrets are set)
@@ -25,7 +25,7 @@ jobs:
           WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
         run: |
           if [ -z "$WIF_PROVIDER" ]; then echo "No GCP secrets set; live smoke test skipped."; echo "SKIP_LIVE=1" >> "$GITHUB_ENV"; fi
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         if: env.SKIP_LIVE != '1'
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
