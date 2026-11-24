@@ -9,18 +9,20 @@ queries course data in BigQuery, one reaches a legacy timetable through a custom
 planner builds a plan that deterministic code checks. Every factual claim cites the calendar passage it
 came from, and every request is traced with tokens, cost and latency.
 
-**Status: V3, live.** <https://waypoint-courses.web.app> (sign in with Google; Firebase Hosting in front of Cloud Run,
-same origin). Direct Cloud Run URL: <https://waypoint-lirjy54bfa-uc.a.run.app>. Second deployment, a labelled demo
-built with fde-kit: <https://fdekit-demo-48349810745.us-central1.run.app>. Users: [TBD].
+**Status: V3, live.** <https://waypoint-courses.web.app> (sign in with Google; Firebase Hosting in front of Cloud Run).
+Hosting buffers streamed responses, so the page sends only the answer stream (`POST /api/chat/stream`) straight to the
+Cloud Run URL, <https://waypoint-lirjy54bfa-uc.a.run.app>, with CORS limited to the two Hosting origins; everything
+else goes through Hosting. Second deployment, a labelled demo built with fde-kit:
+<https://fdekit-demo-48349810745.us-central1.run.app>. Users: [TBD].
 
 What it knows today: **UTM Mathematical Sciences only** (59 MAT courses, 4 programs). The St. George and UTSC
 adapters exist but hold no real data, because the U of T calendar sites return 403 to Waypoint's fetcher and it stops
 there rather than working around it (see [Data sources](#data-sources)). Timetable data is **synthetic sample data**.
 
-Known limits right now: planning answers take about 40 s (Gemini latency on the day of the V3 launch was ~7 tokens/s;
-the planning time budget is 45 s, after which Pip shows what it has and points to **My plan**), and Firebase Hosting
-buffers the answer stream, so on the web.app address an answer appears all at once instead of word by word (the Cloud
-Run URL streams).
+Known limits right now: plans cover only what the parsed data can check. A requirement line Waypoint can't read, or a
+course outside the data (ISP100H5, STA and CSC courses), is listed for the student to handle, not planned. Waypoint
+doesn't know which term a course is offered. Planning follow-ups that lean on earlier turns still go to the slower
+agent planner (20 s limit).
 
 <p align="center"><img src="docs/img/pip.gif" alt="Pip, Waypoint's pixel robot, in its four states: idle, thinking, talking and waving" width="600"></p>
 
@@ -112,8 +114,29 @@ Caveats, stated plainly: the policy sets are small (10 test questions), so only 
 agent-eval accuracy drop is inside the noise at n=21 and the corpus and questions changed between versions, so this is
 not a controlled comparison. The 99.4% fact number checks Waypoint against tables it parsed itself, so it measures the
 answering code, not whether the parser read the calendar correctly (51 of 59 prerequisite trees fully parsed; 8 keep an
-unparsed piece). Planning is the slow path: in the launch smoke tests a plan took 20–46 s and several hit the time
-budget; two bugs found that way (an empty-draft give-up and a cached fallback) are fixed.
+unparsed piece).
+
+### Planning speed (after launch)
+
+10 planning questions (`evals/planning_questions.jsonl`), live on Vertex, answer cache off (`evals/plan_speed.py`):
+
+| | Agent planner (V3 launch, 45 s limit) | Fast planner (now) |
+|---|---|---|
+| First content P50 / P95 | 16.2 s / 46.9 s | 0.05 s / 1.7 s |
+| Total P50 / P95 | 16.2 s / 46.9 s | 1.8 s / 3.2 s |
+| Valid plans / timeouts | 5/10 / 1 | 10/10 / 0 |
+| Model calls (mean) / cost for all 10 | 9.5 / $0.68 | 1.1 / $0.005 |
+
+After the deploy, the live smoke-test plans took 1.4–3.7 s end to end (the slower one on a cold instance). The agent
+planner is a drafter + critic loop (up to 19 model calls) whose answer isn't streamed. The fast planner builds the plan
+in code from the parsed requirements and prerequisites, checks it with the same validator the critic uses, sends it at
+once, and then streams a 2–4 sentence explanation from Gemini 3.5 Flash-Lite (`evals/plan_speed.py`, live, cache off;
+`evals/results/plan_speed_*.json`). Its 10/10 is judged by that same validator, so it shows the plans are consistent
+with the data, not that an advisor would sign off on them. The "~7 tokens/s" reported at launch was Waypoint's own
+tokens-per-second metric (all output over the whole multi-call request), not Gemini's speed: measured directly, Gemini
+3.5 Flash with minimal thinking returns its first token in 1.3–1.8 s. Flash-Lite was kept for the explanation after it
+matched Flash on a deterministic judge (9–10/10 in two runs each) at about a quarter of the cost
+(`evals/plan_explainer_eval.py`).
 <!-- metrics:end -->
 
 ## How it works
