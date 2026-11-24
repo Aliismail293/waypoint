@@ -9,12 +9,29 @@ queries course data in BigQuery, one reaches a legacy timetable through a custom
 planner builds a plan that deterministic code checks. Every factual claim cites the calendar passage it
 came from, and every request is traced with tokens, cost and latency.
 
-**Status: v0.3 (Phase 3: deployed).** Live URL: <https://waypoint-48349810745.us-central1.run.app>
-(sign in with Google). A short Firebase Hosting address in front of it is set up in `firebase.json` but not yet
-live; see [infra/HOSTING.md](infra/HOSTING.md). Second deployment, a labelled demo built with fde-kit:
-<https://fdekit-demo-48349810745.us-central1.run.app>. Users: [TBD]. The calendar corpus currently covers
-the Mathematical Sciences section (4 programs, 59 MAT courses). Timetable data is **synthetic sample data**
-(see [Data sources](#data-sources)).
+**Status: V3, live.** <https://waypoint-courses.web.app> (sign in with Google; Firebase Hosting in front of Cloud Run,
+same origin). Direct Cloud Run URL: <https://waypoint-lirjy54bfa-uc.a.run.app>. Second deployment, a labelled demo
+built with fde-kit: <https://fdekit-demo-48349810745.us-central1.run.app>. Users: [TBD].
+
+What it knows today: **UTM Mathematical Sciences only** (59 MAT courses, 4 programs). The St. George and UTSC
+adapters exist but hold no real data, because the U of T calendar sites return 403 to Waypoint's fetcher and it stops
+there rather than working around it (see [Data sources](#data-sources)). Timetable data is **synthetic sample data**.
+
+Known limits right now: planning answers take about 40 s (Gemini latency on the day of the V3 launch was ~7 tokens/s;
+the planning time budget is 45 s, after which Pip shows what it has and points to **My plan**), and Firebase Hosting
+buffers the answer stream, so on the web.app address an answer appears all at once instead of word by word (the Cloud
+Run URL streams).
+
+<p align="center"><img src="docs/img/pip.gif" alt="Pip, Waypoint's pixel robot, in its four states: idle, thinking, talking and waving" width="600"></p>
+
+| Chat: a fact answered from the parsed calendar, with its source | Course map: prerequisite links from the data, coloured by the student's courses |
+|---|---|
+| ![Chat answer for "What do I need before MAT224H5?" with one calendar source](docs/img/chat.png) | ![Course map with 100- and 200-level MAT courses; taken courses outlined in green](docs/img/course-map.png) |
+| **My plan: terms, drag and drop, and a critic report computed by code** | **Programs: the four MAT programs, each with a checklist** |
+| ![My plan with two terms and a critic report listing two notes](docs/img/my-plan.png) | ![Programs list: Mathematics major, Applied Mathematics major, minor and specialist](docs/img/programs.png) |
+
+Screenshots: Playwright against the app running locally with the real parsed calendar data and the offline model stub
+(the chat answer is a fact-route answer, which uses no model).
 
 ## Architecture
 
@@ -79,6 +96,24 @@ Cost and model calls dropped clearly. Accuracy is lower than the Oct 28 run, but
 57.1% on re-run, so most of that gap looks like run-to-run drift; a small fast-path effect is not ruled out.
 Latency was erratic during runs 2 and 3 (Vertex-side) and is not claimed as a win. Router eval (36 labelled
 questions, live flash-lite): 97.2% route accuracy, 0 wrong fast routes; CI fails below 90%.
+### V3: facts from data, policy RAG tuned with ragaudit
+
+| | V2 (eval_v0 / Stage 1) | V3 |
+|---|---|---|
+| Fact accuracy (deterministic, 167 questions generated from the parsed tables) | n/a | 99.4% (1 miss) |
+| Policy RAG, dev split (n=25; local qwen2.5:7b / llama3.1:8b) | n/a | 92.0% pass (answer accuracy 96%, recall@5 96%) |
+| Policy RAG, locked test split (n=10), scored once | n/a | 90.0%; `ragaudit tune` found no better config, dev-test gap 2 pts |
+| Agent eval, held-out test split (n=21, Gemini judge): accuracy / recall@5 | 66.7% / 81.0% | 61.9% / 71.4% |
+| Total latency P95 (agent eval) | 16.0 s | 6.9 s |
+| Cost per query (agent eval) | $0.0112 | $0.0039 |
+| Fact-route latency | n/a | 1.6–2.0 s live, 0 model calls for the answer |
+
+Caveats, stated plainly: the policy sets are small (10 test questions), so only large differences mean anything; the
+agent-eval accuracy drop is inside the noise at n=21 and the corpus and questions changed between versions, so this is
+not a controlled comparison. The 99.4% fact number checks Waypoint against tables it parsed itself, so it measures the
+answering code, not whether the parser read the calendar correctly (51 of 59 prerequisite trees fully parsed; 8 keep an
+unparsed piece). Planning is the slow path: in the launch smoke tests a plan took 20–46 s and several hit the time
+budget; two bugs found that way (an empty-draft give-up and a cached fallback) are fixed.
 <!-- metrics:end -->
 
 ## How it works

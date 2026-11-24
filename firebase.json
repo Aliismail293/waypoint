@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "waypoint-planner",
+    "site": "waypoint-courses",
     "public": "hosting-public",
     "ignore": ["firebase.json", "**/.*"],
     "rewrites": [
