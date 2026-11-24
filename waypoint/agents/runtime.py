@@ -35,7 +35,7 @@ from opentelemetry import trace
 
 from waypoint.agents.factory import Dependencies, build_agents
 from waypoint.agents.labels import COURSE, done_label, running_label
-from waypoint.agents.prompts import BUDGET_MESSAGE
+from waypoint.agents.prompts import BUDGET_MESSAGE, NO_PLAN_MESSAGE
 from waypoint.agents.router import RouteDecision, classify
 from waypoint.agents.state import MeteredLlm, PruneOldToolOutputs, state_options
 from waypoint.cache import AnswerCache, CachedAnswer, build_answer_cache, cache_key
@@ -270,6 +270,7 @@ PARTIAL_PLAN_NOTE = (
     "Open **My plan** to build and check the plan step by step: it checks prerequisites, exclusions and "
     "term load instantly."
 )
+FALLBACK_MESSAGES = (BUDGET_MESSAGE, NO_PLAN_MESSAGE, PARTIAL_PLAN_NOTE)
 
 
 @dataclass
@@ -587,6 +588,7 @@ class WaypointRuntime:
                 and not record.cache_hit
                 and final_text
                 and not (record.out_of_scope or record.limit_hit or record.tool_errors or record.unknown_codes)
+                and not any(m in final_text for m in FALLBACK_MESSAGES)  # a give-up reply must not be served again
             ):
                 entry = CachedAnswer(final_text, list(record.retrieved_chunk_ids), record.route)
                 await asyncio.to_thread(self._cache_put, cache_key_value, entry)

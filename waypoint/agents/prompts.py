@@ -6,6 +6,10 @@ BUDGET_MESSAGE = (
     "That needed more steps than I can take in one answer. Open **My plan** to build and check it step by step, "
     "or ask about one program, course or term at a time."
 )
+NO_PLAN_MESSAGE = (
+    "I couldn't finish a plan in one answer. Open **My plan** to build and check it step by step "
+    "(it checks prerequisites, exclusions and term load instantly), or ask about one program."
+)
 
 CITATION_RULE = (
     "Cite sources by putting the chunk_id from tool results in square brackets right after the claim it "
