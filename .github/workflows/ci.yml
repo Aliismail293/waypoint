@@ -10,7 +10,8 @@ permissions:
   contents: read
 
 env:
-  # ragaudit is a path dependency (../Rag-Tester); pin the commit the lockfile was built against.
+  # ragaudit is a pinned git dependency now; the clone below is only for measuring PR bases from before that pin,
+  # whose pyproject still expects it at ../Rag-Tester.
   RAGAUDIT_REPO: https://github.com/Aliismail293/rag-tester.git
   RAGAUDIT_SHA: 236bf5028ebe780b2677ced6ec24c0a02b860d67
 
@@ -19,10 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: ragaudit (path dependency)
-        run: |
-          git clone --quiet "$RAGAUDIT_REPO" ../Rag-Tester
-          git -C ../Rag-Tester checkout --quiet "$RAGAUDIT_SHA"
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --all-groups --frozen
       - run: uv run ruff check . && uv run ruff format --check .
@@ -58,7 +55,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: ragaudit (path dependency)
+      - name: ragaudit checkout (older PR bases only)
         run: |
           git clone --quiet "$RAGAUDIT_REPO" ../Rag-Tester
           git -C ../Rag-Tester checkout --quiet "$RAGAUDIT_SHA"

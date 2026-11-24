@@ -1528,27 +1528,13 @@ wheels = [
 [[package]]
 name = "ragaudit"
 version = "0.2.0"
-source = { editable = "../Rag-Tester" }
+source = { git = "https://github.com/Aliismail293/rag-tester.git?rev=236bf5028ebe780b2677ced6ec24c0a02b860d67#236bf5028ebe780b2677ced6ec24c0a02b860d67" }
 dependencies = [
     { name = "httpx" },
     { name = "jinja2" },
     { name = "pydantic" },
     { name = "typer" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "jinja2", specifier = ">=3.1" },
-    { name = "langchain-core", marker = "extra == 'langchain'", specifier = ">=0.2" },
-    { name = "llama-index-core", marker = "extra == 'llamaindex'", specifier = ">=0.10" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6" },
-    { name = "typer", specifier = ">=0.12" },
-]
-provides-extras = ["langchain", "llamaindex", "yaml", "dev"]
 
 [[package]]
 name = "referencing"
@@ -1962,7 +1948,7 @@ dev = [
     { name = "ruff", specifier = ">=0.7" },
 ]
 e2e = [{ name = "playwright", specifier = ">=1.65.2" }]
-eval = [{ name = "ragaudit", editable = "../Rag-Tester" }]
+eval = [{ name = "ragaudit", git = "https://github.com/Aliismail293/rag-tester.git?rev=236bf5028ebe780b2677ced6ec24c0a02b860d67" }]
 
 [[package]]
 name = "websockets"

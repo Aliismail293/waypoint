@@ -39,7 +39,8 @@ e2e = [
 eval = ["ragaudit"]
 
 [tool.uv.sources]
-ragaudit = { path = "../Rag-Tester", editable = true }
+# Pinned by commit (the eval gate was calibrated on it); ../Rag-Tester is now a different package, ragaudit-cli.
+ragaudit = { git = "https://github.com/Aliismail293/rag-tester.git", rev = "236bf5028ebe780b2677ced6ec24c0a02b860d67" }
 
 [build-system]
 requires = ["hatchling"]
