@@ -84,13 +84,19 @@ class PlanWithCritic(BaseAgent):
         drafter, critic = self.sub_agents
         draft = ""
         approved = False
+        retried_empty = False
         for _ in range(self.max_revisions + 1):
             async with Aclosing(drafter.run_async(ctx)) as agen:
                 async for event in agen:
                     yield event
             new_draft = str(ctx.session.state.get(DRAFT_KEY, "") or "")
-            if not new_draft.strip() or prompts.BUDGET_MESSAGE in new_draft:
+            if prompts.BUDGET_MESSAGE in new_draft:
                 break  # out of steps: keep the last complete draft
+            if not new_draft.strip():
+                if retried_empty:
+                    break
+                retried_empty = True  # an empty final reply is a known model flake (FRICTION-2): draft once more
+                continue
             draft = new_draft
 
             checks_before = len(ctx.session.state.get(CHECKS_KEY, []))

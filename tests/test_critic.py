@@ -78,3 +78,14 @@ async def test_revisions_are_capped_and_concerns_flagged():
     final, authors = await run(agent)
     assert final.startswith("d3")  # 1 draft + 2 revisions, never a 4th
     assert "reviewer still had concerns" in final
+
+
+async def test_empty_draft_is_retried_once():
+    final, authors = await run(build(["", "draft 2"], [check(VALID), text("APPROVE")]))
+    assert final == "draft 2"
+    assert authors.count("plan_drafter") == 2
+
+
+async def test_two_empty_drafts_fall_back():
+    final, _ = await run(build(["", "", "d3"], [text("APPROVE")]))
+    assert final.startswith("I couldn't finish a plan")
