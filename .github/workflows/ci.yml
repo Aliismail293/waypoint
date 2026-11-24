@@ -19,8 +19,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --all-groups --frozen
       - run: uv run ruff check . && uv run ruff format --check .
       - run: uv run mypy
@@ -33,8 +33,8 @@ jobs:
       run:
         working-directory: fde-kit
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --frozen
       - run: uv run ruff check && uv run mypy src && uv run pytest -q && uv build
 
@@ -44,22 +44,22 @@ jobs:
       run:
         working-directory: fdekit-demo
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --frozen
       - run: uv run ruff check . && uv run pytest -q
 
   eval-gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: ragaudit checkout (older PR bases only)
         run: |
           git clone --quiet "$RAGAUDIT_REPO" ../Rag-Tester
           git -C ../Rag-Tester checkout --quiet "$RAGAUDIT_SHA"
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --all-groups --frozen
       - name: Measure head
         run: uv run python evals/ci_gate.py measure --out "$RUNNER_TEMP/head.json"
