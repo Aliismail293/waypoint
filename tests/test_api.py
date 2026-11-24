@@ -163,3 +163,48 @@ def test_config_exposes_dev_mode_only_off_cloud_run():
         assert client.get("/api/config").json()["dev_mode"] is True
     with client_for() as client:
         assert client.get("/api/config").json()["dev_mode"] is False
+
+
+SITE = "https://waypoint-courses.web.app"
+RUN = "https://waypoint-x.a.run.app"
+
+
+def test_hosting_origins_stream_from_cloud_run_with_cors(monkeypatch):
+    """Hosting buffers SSE, so the web.app page posts /api/chat/stream to the Cloud Run URL: the preflight must allow
+    the Authorization header, the stream must carry CORS headers, and /api/config must tell the page where to go."""
+    monkeypatch.setattr(auth.id_token, "verify_oauth2_token", lambda token, req, audience=None: fake_claims("cid"))
+    cors = f"{SITE},https://waypoint-courses.firebaseapp.com"
+    with client_for(google_client_id="cid", cors_origins=cors, stream_url=RUN + "/") as client:
+        config = client.get("/api/config").json()
+        assert config["stream_url"] == RUN and SITE in config["stream_origins"]
+        pre = client.options(
+            "/api/chat/stream",
+            headers={
+                "Origin": SITE,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization,content-type",
+            },
+        )
+        assert pre.status_code == 200
+        assert pre.headers["access-control-allow-origin"] == SITE
+        assert "authorization" in pre.headers["access-control-allow-headers"].lower()
+        assert int(pre.headers["access-control-max-age"]) >= 600
+        r = client.post(
+            "/api/chat/stream",
+            json={"message": "What are the prerequisites for MAT224?"},
+            headers={"Authorization": "Bearer t", "Origin": SITE},
+        )
+        assert r.status_code == 200 and r.headers["access-control-allow-origin"] == SITE
+        assert "event: final" in r.text
+        # another site gets no CORS grant, and without the token the stream is still refused
+        evil = client.options(
+            "/api/chat/stream", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"}
+        )
+        assert "access-control-allow-origin" not in evil.headers
+        assert client.post("/api/chat/stream", json={"message": "hi"}, headers={"Origin": SITE}).status_code == 401
+
+
+def test_stream_url_is_off_by_default():
+    with client_for(google_client_id="cid") as client:
+        config = client.get("/api/config").json()
+        assert config["stream_url"] == "" and config["stream_origins"] == []

@@ -105,6 +105,10 @@ class Settings(BaseSettings):
     # Comma-separated browser origins allowed to call the API cross-origin (e.g. https://SITE.web.app). Empty = no CORS,
     # which is right when Firebase Hosting rewrites /api to Cloud Run (same origin) or the app is served directly.
     cors_origins: str = ""
+    # Firebase Hosting buffers Server-Sent Events, so a page it serves streams answers straight from Cloud Run: when the
+    # page's origin is one of cors_origins, the browser sends POST /api/chat/stream to this URL (everything else stays
+    # on Hosting). Empty = same origin.
+    stream_url: str = ""
 
     advisor_url: str = "https://www.utm.utoronto.ca/academic-advising-career-centre/"
 

@@ -60,6 +60,12 @@ export function stepsSummary(state) {
   return `${n} step${n === 1 ? "" : "s"} · ${seconds.toFixed(1)} s`;
 }
 
+// Where the answer stream comes from. Firebase Hosting buffers Server-Sent Events, so a page served from one of the
+// server's CORS origins (the web.app site) streams straight from Cloud Run; everywhere else it is the same origin.
+export function streamBase(config, origin) {
+  return config.stream_url && (config.stream_origins || []).includes(origin) ? config.stream_url : "";
+}
+
 export async function readEvents(response, onEvent) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();

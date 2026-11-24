@@ -195,6 +195,7 @@ def create_app(
             allow_origins=origins,
             allow_methods=["GET", "POST", "PUT", "DELETE"],
             allow_headers=["Authorization", "Content-Type"],
+            max_age=600,  # one preflight per 10 minutes, not one per question
         )
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
@@ -270,6 +271,9 @@ def create_app(
             "coverage": {"campuses": coverage_rows()},
             # Local development and the browser smoke test run without Google sign-in; never on Cloud Run.
             "dev_mode": settings.dev_skip_auth and not settings.on_cloud_run,
+            # Pages served from these origins stream answers from stream_url (Hosting would buffer the stream).
+            "stream_url": settings.stream_url.rstrip("/"),
+            "stream_origins": origins if settings.stream_url else [],
         }
 
     @app.get("/api/profile")
