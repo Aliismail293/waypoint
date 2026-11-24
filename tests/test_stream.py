@@ -233,6 +233,16 @@ async def test_out_of_scope_and_errors_are_not_cached():
     assert not again.record.cache_hit
 
 
+async def test_fallback_replies_are_not_cached(monkeypatch):
+    from waypoint.agents import runtime as rt
+
+    monkeypatch.setattr(rt, "flag_unknown_codes", lambda text, known: (rt.NO_PLAN_MESSAGE, []))
+    runtime = WaypointRuntime.from_settings(Settings(**OFFLINE))
+    first = await runtime.ask("alice", "What are the prerequisites for MAT224?")
+    again = await runtime.ask("bob", "What are the prerequisites for MAT224?")
+    assert first.text == rt.NO_PLAN_MESSAGE and not again.record.cache_hit
+
+
 async def test_cache_can_be_turned_off():
     runtime = WaypointRuntime.from_settings(Settings(**OFFLINE, answer_cache="off"))
     await runtime.ask("alice", "What are the prerequisites for MAT224?")

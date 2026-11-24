@@ -112,10 +112,7 @@ class PlanWithCritic(BaseAgent):
                 break
 
         if not draft:
-            draft = (
-                "I couldn't finish a plan in one answer. Open **My plan** to build and check it step by step "
-                "(it checks prerequisites, exclusions and term load instantly), or ask about one program."
-            )
+            draft = prompts.NO_PLAN_MESSAGE
         elif not approved:
             draft += (
                 "\n\nNote: Waypoint's plan reviewer still had concerns about this draft, so check it carefully "
