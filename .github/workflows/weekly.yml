@@ -11,19 +11,11 @@ permissions:
   issues: write
   id-token: write
 
-env:
-  RAGAUDIT_REPO: https://github.com/Aliismail293/rag-tester.git
-  RAGAUDIT_SHA: 236bf5028ebe780b2677ced6ec24c0a02b860d67
-
 jobs:
   health:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: ragaudit (path dependency)
-        run: |
-          git clone --quiet "$RAGAUDIT_REPO" ../Rag-Tester
-          git -C ../Rag-Tester checkout --quiet "$RAGAUDIT_SHA"
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --all-groups --frozen
       - run: uv run pytest -q

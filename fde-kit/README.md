@@ -134,6 +134,6 @@ uv sync && uv run pytest && uv run ruff check && uv run mypy src && uv build
 ```
 
 The tests are fully offline, with no network or cloud credentials. The ragaudit integration test runs when
-ragaudit is installed (`uv run --with /path/to/Rag-Tester pytest`).
+ragaudit is installed (`uv run --with "ragaudit @ git+https://github.com/Aliismail293/rag-tester.git@236bf50" pytest`).
 
 MIT licensed.
