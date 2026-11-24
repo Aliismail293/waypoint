@@ -9,9 +9,9 @@
 # Origin header, and fails unless:
 #   - the preflight allows the origin and the Authorization header (cross-origin only),
 #   - the stream answers 200 with Access-Control-Allow-Origin for the site (cross-origin only),
-#   - the answer arrives as several events spread over time, not all at once (buffering would deliver them together).
-# The question carries a timestamp so it is never served from the answer cache (a cached reply would pass even
-# through a buffering proxy).
+#   - the events arrive at several different moments, not all at once (buffering would deliver them together).
+# The question carries random letters so it is never served from the answer cache (not digits: a 10-digit timestamp
+# reads as a phone or student number, is redacted before the cache lookup, and every run would share one cache key).
 set -euo pipefail
 SITE="${1:?usage: check_stream.sh URL [ID_TOKEN]}"
 SITE="${SITE%/}"
@@ -41,7 +41,9 @@ fi
 
 OUT="$(mktemp)"
 HEADERS="$(mktemp)"
-QUESTION="Can a course taken on exchange count toward the Mathematics minor? (check $(date +%s))"
+# A policy question with no course code or program name: the fact route, the fast planner and the cache all answer in one
+# burst (which a buffering proxy can't be told apart from), so this one must go to a model that streams.
+QUESTION="How does late withdrawal (LWD) from a course work at UTM, and what shows on my transcript? (check $(python3 -c 'import random, string; print("".join(random.choices(string.ascii_lowercase, k=8)))'))"
 # Each line is stamped with the seconds since the request started, as it arrives.
 curl -sS -N --max-time 90 -D "$HEADERS" -X POST "$TARGET/api/chat/stream" -H 'Content-Type: application/json' \
   -H "Origin: $ORIGIN" ${AUTH[@]+"${AUTH[@]}"} -d "{\"message\":\"$QUESTION\"}" \
@@ -67,10 +69,10 @@ if "final" not in names:
     print("FAIL: the stream ended without a final answer")
     sys.exit(1)
 first, last = events[0][0], events[-1][0]
-token_times = [t for t, name in events if name == "event: token"]
-spread = (token_times[-1] - token_times[0]) if len(token_times) > 1 else 0.0
-print(f"first event {first:.2f} s, last event {last:.2f} s, tokens spread over {spread:.2f} s")
-ok = last - first > 0.3 and len(token_times) > 1 and spread > 0.2
+# A buffering proxy delivers the whole stream at one moment; a streaming path delivers events at many different times.
+moments = len({round(t, 1) for t, _ in events})
+print(f"first event {first:.2f} s, last event {last:.2f} s, {moments} distinct arrival times (0.1 s buckets)")
+ok = last - first > 0.3 and moments >= 3 and "token" in names
 print("streaming OK" if ok else "FAIL: events arrived all at once; the path is buffering")
 sys.exit(0 if ok else 1)
 PY
