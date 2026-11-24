@@ -4,9 +4,14 @@ Firebase Hosting sits in front of the existing Cloud Run service `waypoint` (pro
 `us-central1`) and gives it a clean `https://SITE_ID.web.app` address. Nothing here has been run: it needs your
 Google credentials, so these are the commands for you to run.
 
-**SITE_ID is a placeholder.** `firebase.json` uses `waypoint-planner`. Pick your own (lowercase letters, digits,
-hyphens; globally unique; the plan suggested `waypoint-planner`, `waypointplanner`, `waypoint-degree`; avoid "UTM" in
-the name) and change the `site` field before step 3.
+**Status (2026-11-24): live** at <https://waypoint-courses.web.app> (site `waypoint-courses`, in `firebase.json`).
+Firebase had to be added to the GCP project first (`firebase projects:addfirebase waypoint-513003`); the commands
+below use the old placeholder name `waypoint-planner`, which is taken by another project.
+
+**Measured: Hosting buffers the SSE stream.** Through web.app every event of an answer arrived at the same moment
+(20 events at 7.4 s; `scripts/check_stream.sh` reports "first byte at the end"), while the Cloud Run URL streamed the
+same kind of answer over 15 s. Answers still arrive, within Hosting's 60 s limit. To get streaming back on the short
+address, use the fallback in step 2 below.
 
 ## One-time setup
 
